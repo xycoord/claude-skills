@@ -16,7 +16,7 @@ Generate clear, well-structured experiment reports as Markdown with embedded mat
 
 ## When to read the references
 
-Before generating any plots, read `references/plotting.md` in this skill directory. It contains detailed conventions for colours, layout, bar charts, heatmaps, baselines, and error bars. Following these conventions is essential to producing consistent, readable figures.
+Before generating any plots, read `../plot/references/plotting.md` (the shared plotting conventions). It contains detailed conventions for colours, layout, bar charts, heatmaps, baselines, and error bars. Following these conventions is essential to producing consistent, readable figures.
 
 ## Repo structure context
 
@@ -239,7 +239,7 @@ Every comparison plot must include relevant baselines. If baseline results are a
 
 ## Plotting conventions
 
-The detailed plotting reference is in `references/plotting.md` — read it before generating any figures. Here's a summary of the key principles:
+The detailed plotting reference is in `../plot/references/plotting.md` — read it before generating any figures. Here's a summary of the key principles:
 
 - Save all figures as PNG at 150 DPI minimum, at least 8×5 inches
 - Use a consistent colour palette throughout the report: one colour group for skylines, one for baselines, one for new methods
