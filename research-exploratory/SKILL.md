@@ -94,9 +94,8 @@ Notify the user (as a non-urgent, informational notification) when:
 ## Proactive continuation
 
 Exploratory tasks are natural candidates for proactive continuation — the
-explore–confirm cycle always has another iteration. If the task spec enables
-proactive work, read `../research-common/references/proactive-continuation.md`
-and keep cycling: use confirmed findings to generate new questions, explore those
-questions, form new hypotheses, and test them. Each cycle should be clearly labelled
-in the journal so the user can see where the specified investigation ended and the
-proactive work began.
+explore–confirm cycle always has another iteration. If the task spec includes the
+proactive-continuation skill, keep cycling after completing the specified work: use
+confirmed findings to generate new questions, explore those questions, form new
+hypotheses, and test them. Each cycle should be clearly labelled in the journal so
+the user can see where the specified investigation ended and the proactive work began.

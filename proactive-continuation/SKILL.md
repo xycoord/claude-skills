@@ -1,12 +1,17 @@
+---
+name: proactive-continuation
+description: >
+  Use remaining compute time productively after completing specified work. Use this skill
+  when the task spec indicates Claude should continue working after finishing the primary
+  task — e.g. the user will be away overnight and wants Claude to keep investigating rather
+  than sitting idle. Reference this skill in task specs alongside the relevant research skill.
+---
+
 # Proactive Continuation
 
 When you finish the specified work and the user isn't available to respond (e.g. they're
 asleep, away from their computer, or otherwise occupied), compute resources are sitting
-idle. Rather than waiting, use the remaining time productively. This guidance covers how
-to do that safely.
-
-Only applies when the task spec explicitly enables proactive continuation or the user
-has indicated they'll be away.
+idle. Rather than waiting, use the remaining time productively.
 
 ## Prerequisites
 
