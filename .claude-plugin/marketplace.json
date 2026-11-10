@@ -1,0 +1,12 @@
+{
+  "name": "xycoord",
+  "description": "Logan's skills for Claude",
+  "owner": { "name": "xycoord" },
+  "plugins": [
+    {
+      "name": "dev",
+      "source": "./plugins/dev",
+      "description": "Independent opinions from several model families (/council), and improving something round by round against a fixed measure (/hill-climb)"
+    }
+  ]
+}
