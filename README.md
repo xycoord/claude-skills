@@ -15,9 +15,12 @@ session on that account loads its plugins from `main`.
 The-Grove-Notts/The-Grove-Database. Each steps aside when a repo has its own
 skill of the same name in `.claude/skills/`, so a repo's own copy (with its
 people, branches and scripts) always wins. They read the repo's `CLAUDE.md`
-and `CONTRIBUTING` for the base branch, the checks and who owns what (a
-written rule naming a person; `CODEOWNERS` doesn't count, since GitHub
-already requests those reviews); standing review rules go in the repo's `.claude/pr-review-rules.md`.
+and `CONTRIBUTING` for the checks, the base branch (when there's no PR yet;
+otherwise the default branch) and who owns what (a written rule naming a
+person; `CODEOWNERS` doesn't count, since GitHub already requests those
+reviews). Standing review rules go in the repo's `.claude/pr-review-rules.md`.
+`/dev:pr-review` runs by itself only on work headed for a PR; otherwise
+Claude offers it in a line.
 
 The council's GPT judge runs through `plugins/dev/skills/council/scripts/codex_agent.py`,
 which needs the Codex CLI signed in to a ChatGPT subscription; its docstring

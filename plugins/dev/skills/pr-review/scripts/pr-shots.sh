@@ -20,7 +20,7 @@
 # cloud session's git access may refuse branch deletes, and then it's for a
 # laptop, or the GitHub UI.
 #
-# Refuses to run on the repo's default branch, on a branch named in
+# Refuses to run on the repo's default branch (when origin says what it is), on a branch named in
 # PR_SHOTS_PROTECTED (space-separated, e.g. "dev main"), or on shots/*.
 #
 # Only screenshots of sample data: these are readable by everyone with the

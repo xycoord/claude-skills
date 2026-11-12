@@ -40,8 +40,10 @@ on edit, so iterating is edit → re-run the check) over a production build.
   port with `report_preview_port` (where that tool exists). Not for a
   server only your check uses.
 - **A server from an earlier turn may be gone** (the container restarted
-  or was replaced). Before each run of the check, make sure the app answers
-  on the port you noted, and start it again only if it doesn't.
+  or was replaced). Before each run of the check, make sure the server
+  this check started, from this checkout, is still running (its
+  background task, or its process), and start it again if not. Something
+  else answering on that port isn't it.
 
 **Changing existing UI?** Run the check once before you touch it, for the
 "before" — how it behaves now, on the same scenario — and hand over before

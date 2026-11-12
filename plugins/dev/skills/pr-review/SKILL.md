@@ -1,6 +1,6 @@
 ---
 name: pr-review
-description: Get a branch to ready before handing it over — review it in rounds with the built-in /code-review, fix the clear findings, brief whoever is driving on the calls that need them, then open (or ready) its PR with a problem-first description. Claude runs this itself once it judges the work done, before opening the PR or saying it's finished; it can also be typed. Not mid-iteration, and not again on a head a run already covers. In a repo with its own pr-review skill, use that one instead.
+description: Get a branch to ready before handing it over — review it in rounds with the built-in /code-review, fix the clear findings, brief whoever is driving on the calls that need them, then open (or ready) its PR with a problem-first description. Claude runs this itself once it judges work done that is going to a PR (the branch has one, the person asked for one, or the repo's docs say changes go through PRs), before opening the PR or saying it's finished; otherwise it offers it in a line. It can also be typed. Not mid-iteration, and not again on a head a run already covers. In a repo with its own pr-review skill, use that one instead.
 argument-hint: "[low|medium|high|xhigh|max]  (default high; medium for docs only)"
 ---
 
@@ -27,9 +27,15 @@ sorted**, and never wait for the fixing to finish before they can answer.
 
 ## When it runs
 
-- **Claude runs it by itself** once it judges a branch done: before
-  opening the branch's PR, or before telling the driver the work is
-  finished, whichever comes first. The driver can also type it.
+- **Claude runs it by itself** once it judges a branch done **and the work
+  is going to a PR**: the branch already has one, the driver has asked for
+  one, or the repo's docs say changes go through PRs. Then it runs before
+  opening the PR, or before telling the driver the work is finished,
+  whichever comes first. The driver can also type it.
+- **Otherwise, offer it:** end with one line, "`/dev:pr-review` to review
+  this and open a PR?", and don't run it.
+- **Say nothing** on the default branch, or in a repo with no GitHub
+  remote: the work isn't going through a PR.
 - **Not mid-iteration:** while the work is still being built, or the driver
   is still trying versions out.
 - **Not twice on the same head:** if a run's close-out already covers this
@@ -44,16 +50,11 @@ The repo decides what this skill can't. Before step 1, read the root
 `CLAUDE.md` (and any it points to for the area changed), then `CONTRIBUTING`
 if it exists, for:
 
-- **the base branch** a PR goes into: the first of these that answers.
-  The open PR's base; what the repo's docs say; where the last few merged
-  feature PRs went, leaving out releases (one long-lived branch into
-  another) and bots (`gh api
-  'repos/<owner>/<repo>/pulls?state=closed&per_page=20' --jq '.[] |
-  select(.merged_at) | "\(.head.ref) -> \(.base.ref)"'`, or the MCP
-  equivalent); else the default branch (`git ls-remote --symref origin
-  HEAD`: `origin/HEAD` is often missing in a cloud clone). Never a `dev`
-  branch merely because one exists. If the recent merges are split with no
-  pattern, ask the driver;
+- **the base branch** a PR goes into: the open PR's base if there is one;
+  otherwise what the repo's docs say; otherwise the default branch (`git
+  ls-remote --symref origin HEAD`: `origin/HEAD` is often missing in a
+  cloud clone). Never a `dev` branch merely because one exists. The brief
+  names the base, so the driver can catch a wrong one before the PR opens;
 - **the checks** to run before a push (a `make` target, package scripts, the
   CI workflow's steps);
 - **who owns what**: a written rule in `CLAUDE.md` or `CONTRIBUTING` that
@@ -103,10 +104,10 @@ falls short is either fixed or said plainly as the thing still open.
 - **Every finding is fixed, or declined with a reason** the driver can
   read.
 - **The PR merges into its base without conflicts**, and CI is green on its
-  head (where the repo has CI). Being behind the base doesn't stop the
-  merge, and step 1.5 leaves it behind unless the repo or the driver asks
-  otherwise. CI runs only once
-  the PR is open, so it's the last thing to land.
+  head (where the repo has CI). CI runs only once the PR is open, so it's
+  the last thing to land. Being behind the base is fine unless GitHub
+  says the branch must be up to date to merge (the PR's merge state reads
+  `behind`): then it's short of ready, and step 1.5 says what to do.
 - **The PR description is current** (*6. Open the PR*).
 - **No decision is open** for the driver, and no question waits on anyone
   else, unless the driver has said the merge needn't wait.
@@ -123,19 +124,18 @@ falls short is either fixed or said plainly as the thing still open.
    session to its activity (`subscribe_pr_activity`) where that tool
    exists. No PR → don't open one yet: it opens in *6. Open the PR*,
    reviewed, unless questions need it sooner (*4b*).
-4. Fetch the base into its remote-tracking ref, which a single-branch
-   clone won't do by itself: `git fetch origin
-   +refs/heads/<base>:refs/remotes/origin/<base>`. If `git merge-base
-   origin/<base> HEAD` finds nothing (a shallow clone), deepen both
-   sides by name, `git fetch --deepen=200 origin <base> <branch>`, and
-   if a second try still finds none, `git fetch --unshallow origin`. Still
-   none → the histories are unrelated: stop and tell the driver. Do the same before
-   every review round.
-5. Behind its base → leave it: GitHub tests the PR merged into its base,
-   and an unasked merge commit or rebase is noise, or breaks a linear
-   history. Bring it up to date only when the repo requires it (its docs,
-   or a "branch must be up to date" rule) or the driver asks, and say in
-   the close-out that it's behind. Either way:
+4. Fetch the base by name, so a single-branch clone gets it: `git fetch
+   origin +refs/heads/<base>:refs/remotes/origin/<base>`. If `git
+   merge-base origin/<base> HEAD` then finds nothing (a shallow clone),
+   unshallow it the same way: `git fetch --unshallow origin
+   +refs/heads/<base>:refs/remotes/origin/<base>`, plus the same for the
+   branch if it's on origin. Do this before every review round.
+5. Behind its base → leave it, and say so in the close-out: an unasked
+   merge commit is noise. Update it only when the driver asks or GitHub
+   requires it (*Ready means*), and then by merging the base in. Anything
+   that rewrites the branch's history (a rebase, a force-push) needs the
+   driver's yes first, and the next review round then covers the whole
+   branch. Either way:
    - **It conflicts** → stop, and tell the driver what conflicts. GitHub
      runs no checks on a conflicted PR. Don't resolve it unasked.
    - **Updating would need care the repo calls out** (migrations to
@@ -177,8 +177,9 @@ Then sort (step 3), brief (step 4) and fix (step 5).
 fixing, note the head (`<pre-fix sha>`) in the brief, so it survives a
 long wait. After the round's push, review `<pre-fix sha>..HEAD` the same
 way, and check that each finding the last round fixed is really fixed. If
-the base was merged in after `<pre-fix sha>` (to clear a conflict, say),
-that range holds other people's work, so review the whole branch again
+the base was merged in or the branch rebased after `<pre-fix sha>` (to
+clear a conflict, say), that range holds other people's work, or no
+longer exists, so review the whole branch again
 (`origin/<base>...HEAD`) instead. New findings are sorted, briefed and
 fixed as in round 1; their decisions continue the brief's numbering, in a
 short follow-up brief in the same shape.

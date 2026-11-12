@@ -43,7 +43,8 @@ concerned: nothing is left to catch by checking back.
      line: "<Name> answered Q1 a, Q2 b; applied in `<sha>`."
   3. If the answers changed code, review what they changed: a round of
      `/pr-review` (*2. Review*, on `<sha before the answers>..HEAD`, or the
-     whole branch if the base was merged in to apply them), with its fixes
+     whole branch if the base was merged in or the branch rebased to apply
+     them), with its fixes
      pushed.
   4. Once no question the merge waits on is still open, mark a draft held
      for the answers ready (the MCP's `update_pull_request` with `draft:
@@ -85,9 +86,8 @@ concerned: nothing is left to catch by checking back.
   in a line, with what doing it would mean, and do what they say. A bot's
   finding can be checked first and the check reported with it.
 - **A merge conflict:** tell the driver what conflicts, in a line, and
-  resolve it only when they say, the way the repo updates branches
-  (`/pr-review` step 1.5): a merge of the base, or a rebase pushed with
-  `--force-with-lease` only where the repo or the driver asks for one.
+  resolve it only when they say, by merging the base in (`/pr-review` step
+  1.5). Anything that rewrites history needs their yes first.
 - **The PR merged or closed:** if `pr-shots.sh` put screenshots on
   `shots/<branch>`, run `bash <pr-review skill folder>/scripts/pr-shots.sh
   delete <branch>` once. If the delete is refused (a cloud session's git
