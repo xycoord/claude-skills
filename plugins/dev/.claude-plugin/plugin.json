@@ -1,5 +1,5 @@
 {
   "name": "dev",
-  "description": "Independent opinions from several model families (/council), and improving something round by round against a fixed measure (/hill-climb)",
+  "description": "Independent opinions from several model families (/council), improving something round by round against a fixed measure (/hill-climb), and getting a branch to ready: review in rounds and a problem-first PR (/pr-review), trying the change in a browser (verify), and looking after the PR (steward)",
   "author": { "name": "xycoord" }
 }
