@@ -39,8 +39,9 @@ on edit, so iterating is edit → re-run the check) over a production build.
 - If the person may want to open the app themselves, tell their app the
   port with `report_preview_port` (where that tool exists). Not for a
   server only your check uses.
-- **Servers don't survive between turns in a cloud session.** Before each
-  run of the check, make sure the app answers, and start it again if not.
+- **A server from an earlier turn may be gone** (the container restarted
+  or was replaced). Before each run of the check, make sure the app answers
+  on the port you noted, and start it again only if it doesn't.
 
 **Changing existing UI?** Run the check once before you touch it, for the
 "before" — how it behaves now, on the same scenario — and hand over before

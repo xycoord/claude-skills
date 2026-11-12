@@ -42,6 +42,7 @@ push)
     [ $# -gt 0 ] || die "push needs at least one image file"
     [ -n "$current" ] || die "not on a branch"
     default="$(git -C "$root" ls-remote --symref origin HEAD 2>/dev/null | sed -nE 's#^ref: refs/heads/([^[:space:]]+)[[:space:]]+HEAD$#\1#p' || true)"
+    [ -n "$default" ] || echo "pr-shots: couldn't read origin's default branch; refusing only main, master and PR_SHOTS_PROTECTED" >&2
     for protected in $default ${PR_SHOTS_PROTECTED:-} main master; do
         [ "$current" != "$protected" ] || die "not from '$current': screenshots belong to a feature branch"
     done

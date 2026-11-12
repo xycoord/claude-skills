@@ -44,13 +44,16 @@ The repo decides what this skill can't. Before step 1, read the root
 `CLAUDE.md` (and any it points to for the area changed), then `CONTRIBUTING`
 if it exists, for:
 
-- **the base branch** a PR goes into. In this order: the open PR's base;
-  what the repo's docs say; where the last few merged PRs went (`gh api
-  'repos/<owner>/<repo>/pulls?state=closed&per_page=10' --jq '.[] |
-  select(.merged_at) | .base.ref'`, or the MCP equivalent); else the
-  default branch (`git ls-remote --symref origin HEAD`: `origin/HEAD` is
-  often missing in a cloud clone). Never a `dev` branch merely because one
-  exists. If these disagree, ask the driver;
+- **the base branch** a PR goes into: the first of these that answers.
+  The open PR's base; what the repo's docs say; where the last few merged
+  feature PRs went, leaving out releases (one long-lived branch into
+  another) and bots (`gh api
+  'repos/<owner>/<repo>/pulls?state=closed&per_page=20' --jq '.[] |
+  select(.merged_at) | "\(.head.ref) -> \(.base.ref)"'`, or the MCP
+  equivalent); else the default branch (`git ls-remote --symref origin
+  HEAD`: `origin/HEAD` is often missing in a cloud clone). Never a `dev`
+  branch merely because one exists. If the recent merges are split with no
+  pattern, ask the driver;
 - **the checks** to run before a push (a `make` target, package scripts, the
   CI workflow's steps);
 - **who owns what**: a written rule in `CLAUDE.md` or `CONTRIBUTING` that
@@ -101,7 +104,8 @@ falls short is either fixed or said plainly as the thing still open.
   read.
 - **The PR merges into its base without conflicts**, and CI is green on its
   head (where the repo has CI). Being behind the base doesn't stop the
-  merge; step 1 brings it up to date when it safely can. CI runs only once
+  merge, and step 1.5 leaves it behind unless the repo or the driver asks
+  otherwise. CI runs only once
   the PR is open, so it's the last thing to land.
 - **The PR description is current** (*6. Open the PR*).
 - **No decision is open** for the driver, and no question waits on anyone
@@ -122,8 +126,10 @@ falls short is either fixed or said plainly as the thing still open.
 4. Fetch the base into its remote-tracking ref, which a single-branch
    clone won't do by itself: `git fetch origin
    +refs/heads/<base>:refs/remotes/origin/<base>`. If `git merge-base
-   origin/<base> HEAD` finds nothing (a shallow clone), `git fetch
-   --deepen=200 origin` until it does, or `--unshallow`. Do the same before
+   origin/<base> HEAD` finds nothing (a shallow clone), deepen both
+   sides by name, `git fetch --deepen=200 origin <base> <branch>`, and
+   if a second try still finds none, `git fetch --unshallow origin`. Still
+   none → the histories are unrelated: stop and tell the driver. Do the same before
    every review round.
 5. Behind its base → leave it: GitHub tests the PR merged into its base,
    and an unasked merge commit or rebase is noise, or breaks a linear
