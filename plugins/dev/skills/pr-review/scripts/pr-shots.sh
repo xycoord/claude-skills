@@ -8,15 +8,17 @@
 #                                 their folder's name: a/x.png and b/x.png
 #                                 go up as a-x.png and b-x.png)
 #   pr-shots.sh delete [BRANCH]   delete shots/<BRANCH> (default: the current
-#                                 branch's). Rarely needed: see below
+#                                 branch's). The steward skill runs it
 #
 # The side branch is an orphan: one commit holding only the images, never
-# merged, with no workflows in it, so pushing it runs nothing. A second
+# merged, with no workflows in it, so pushing it runs no GitHub Actions (a
+# host that builds every branch, such as Vercel or Netlify, may need
+# shots/* ignored). A second
 # `push` replaces the set, so put the new lines in the description. The
 # lines address the commit, not the branch, so they don't change under a
-# reader. Nothing deletes the side branch on its own: run `delete` once the
-# PR has merged or closed (a cloud session's git access may refuse branch
-# deletes; then it's for a laptop, or the GitHub UI).
+# reader. The steward skill runs `delete` when the PR merges or closes; a
+# cloud session's git access may refuse branch deletes, and then it's for a
+# laptop, or the GitHub UI.
 #
 # Refuses to run on the repo's default branch, on a branch named in
 # PR_SHOTS_PROTECTED (space-separated, e.g. "dev main"), or on shots/*.
@@ -39,7 +41,7 @@ case "$cmd" in
 push)
     [ $# -gt 0 ] || die "push needs at least one image file"
     [ -n "$current" ] || die "not on a branch"
-    default="$(git -C "$root" ls-remote --symref origin HEAD 2>/dev/null | sed -nE 's#^ref: refs/heads/([^[:space:]]+)[[:space:]]+HEAD$#\1#p')"
+    default="$(git -C "$root" ls-remote --symref origin HEAD 2>/dev/null | sed -nE 's#^ref: refs/heads/([^[:space:]]+)[[:space:]]+HEAD$#\1#p' || true)"
     for protected in $default ${PR_SHOTS_PROTECTED:-} main master; do
         [ "$current" != "$protected" ] || die "not from '$current': screenshots belong to a feature branch"
     done
