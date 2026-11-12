@@ -42,10 +42,8 @@ concerned: nothing is left to catch by checking back.
   2. Apply the answers, run the checks and push. Tell the driver in a
      line: "<Name> answered Q1 a, Q2 b; applied in `<sha>`."
   3. If the answers changed code, review what they changed: a round of
-     `/pr-review` (*2. Review*, on `<sha before the answers>..HEAD`, or the
-     whole branch if the base was merged in or the branch rebased to apply
-     them), with its fixes
-     pushed.
+     `/pr-review` on `<sha before the answers>..HEAD` (*2. Review* says
+     when to take the whole branch instead), with its fixes pushed.
   4. Once no question the merge waits on is still open, mark a draft held
      for the answers ready (the MCP's `update_pull_request` with `draft:
      false`; else, in a cloud session, `gh api -X POST

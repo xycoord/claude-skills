@@ -33,7 +33,8 @@ sorted**, and never wait for the fixing to finish before they can answer.
   opening the PR, or before telling the driver the work is finished,
   whichever comes first. The driver can also type it.
 - **Otherwise, offer it:** end with one line, "`/dev:pr-review` to review
-  this and open a PR?", and don't run it.
+  this and open a PR?", and don't run it. Once per branch: offer again only
+  after new commits since the last offer.
 - **Say nothing** on the default branch, or in a repo with no GitHub
   remote: the work isn't going through a PR.
 - **Not mid-iteration:** while the work is still being built, or the driver
@@ -126,10 +127,13 @@ falls short is either fixed or said plainly as the thing still open.
    reviewed, unless questions need it sooner (*4b*).
 4. Fetch the base by name, so a single-branch clone gets it: `git fetch
    origin +refs/heads/<base>:refs/remotes/origin/<base>`. If `git
-   merge-base origin/<base> HEAD` then finds nothing (a shallow clone),
-   unshallow it the same way: `git fetch --unshallow origin
-   +refs/heads/<base>:refs/remotes/origin/<base>`, plus the same for the
-   branch if it's on origin. Do this before every review round.
+   merge-base origin/<base> HEAD` then finds nothing and the clone is
+   shallow (`git rev-parse --is-shallow-repository` says `true`), unshallow
+   it in one fetch: `git fetch --unshallow origin
+   +refs/heads/<base>:refs/remotes/origin/<base>`, adding the branch's own
+   refspec if it's on origin. Still nothing, or not shallow → the histories
+   are unrelated: stop and tell the driver. Do this before every review
+   round.
 5. Behind its base → leave it, and say so in the close-out: an unasked
    merge commit is noise. Update it only when the driver asks or GitHub
    requires it (*Ready means*), and then by merging the base in. Anything
@@ -315,7 +319,8 @@ Rules for the brief:
 - Keep each decision to about 8 lines. If it can't be explained in that,
   it's still one decision — say less about the mechanism, more about the
   choice.
-- No decisions → say so in one line and carry on.
+- No decisions → say so in one line that names the base ("No decisions;
+  this goes into `<base>`.") and carry on.
 
 ### 4b. Questions for someone else
 
