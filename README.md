@@ -9,7 +9,7 @@ session on that account loads its plugins from `main`.
 
 | Plugin | Skills |
 |---|---|
-| `dev` | `/dev:council`: independent opinions on the same thing from several model families (Opus, Fable and GPT via the Codex CLI), then weighing them. `/dev:hill-climb`: improve something round by round against a fixed measure, judged by a council or a command, until a target. `/dev:pr-review`: get a branch to ready — review it in rounds with the built-in `/code-review`, fix the clear findings, brief the driver on the calls that need a person, and open the PR with a problem-first description. `dev:verify`: try a UI change in a real browser and hand over screenshots. `dev:steward` (not a command): how Claude looks after a PR it opened — answers, no check-ins, staying quiet. |
+| `dev` | `/dev:council`: independent opinions on the same thing from several model families (Opus, Fable and GPT via the Codex CLI), then weighing them. `/dev:hill-climb`: improve something round by round against a fixed measure, judged by a council or a command, until a target. `/dev:pr-review`: get a branch to ready — review it in rounds with the built-in `/code-review`, fix the clear findings, brief the driver on the calls that need a person, and open the PR with a problem-first description. `/dev:verify`: try a web UI change in a real browser and hand over screenshots. `dev:steward` (not a command): how Claude looks after a PR it opened — answers, no check-ins, staying quiet. |
 
 `pr-review`, `verify` and `steward` are general versions of the skills in
 The-Grove-Notts/The-Grove-Database. Each steps aside when a repo has its own
