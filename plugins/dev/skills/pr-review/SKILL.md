@@ -6,9 +6,13 @@ argument-hint: "[low|medium|high|xhigh|max]  (default high; medium for docs only
 
 # /pr-review — make it ready, and ask only what needs a person
 
-**First:** if the repo has its own `.claude/skills/pr-review/SKILL.md`, follow
-that instead and stop reading this one. It knows the repo's people, branches
-and checks; this is the general version.
+**First:** look for the repo's own copy at
+`<root>/.claude/skills/pr-review/SKILL.md`, where `<root>` is `git rev-parse
+--show-toplevel` in the checkout the branch is in (not wherever the session
+started). If it's there, invoke the repo's `pr-review` skill with this run's
+argument (`$ARGUMENTS`), or read that file and follow it with that argument,
+and stop reading this one. It knows the repo's people, branches and checks;
+this is the general version.
 
 What reaches the driver (the person working with this session) should be the
 most finished thing Claude can make on its own: reviewed, fixed, proved and
@@ -38,16 +42,28 @@ sorted**, and never wait for the fixing to finish before they can answer.
 
 The repo decides what this skill can't. Before step 1, read the root
 `CLAUDE.md` (and any it points to for the area changed), then `CONTRIBUTING`
-and `.github/CODEOWNERS` if they exist, for:
+if it exists, for:
 
-- **the base branch** a PR goes into (a `dev` or `develop` branch, or the
-  default branch);
+- **the base branch** a PR goes into. In this order: the open PR's base;
+  what the repo's docs say; where the last few merged PRs went (`gh api
+  'repos/<owner>/<repo>/pulls?state=closed&per_page=10' --jq '.[] |
+  select(.merged_at) | .base.ref'`, or the MCP equivalent); else the
+  default branch (`git ls-remote --symref origin HEAD`: `origin/HEAD` is
+  often missing in a cloud clone). Never a `dev` branch merely because one
+  exists. If these disagree, ask the driver;
 - **the checks** to run before a push (a `make` target, package scripts, the
   CI workflow's steps);
-- **who owns what**: areas or kinds of change that need a named person's
-  say beyond the driver's (an owner of the servers, of money rules, of
-  security). Those become questions on the PR (*4b*). If the repo names
-  nobody, every decision is the driver's and *4b* never applies;
+- **who owns what**: a written rule in `CLAUDE.md` or `CONTRIBUTING` that
+  gives a kind of change to a named person beyond the driver (an owner of
+  the servers, of money rules, of security). Those become questions on the
+  PR (*4b*). `CODEOWNERS` doesn't count: GitHub requests those reviews by
+  itself, and it says whose review is needed, not whose decision a finding
+  is. If the repo names nobody, every decision is the driver's and *4b*
+  never applies;
+- **the driver's GitHub login** (the MCP's `get_me`, or `gh api user --jq
+  .login`). A named owner who is the driver is nobody else. A team, or a
+  person the repo gives no GitHub login for, can't be asked through *4b*:
+  that call goes to the driver, with who else should see it;
 - **house rules**: standing answers about whole classes of finding, in
   `.claude/pr-review-rules.md` if it exists. A finding a rule covers is
   fixed or dropped as the rule says, never asked about again.
@@ -72,7 +88,10 @@ Say a PR is ready only when all of these hold. Never "ready, but…": what
 falls short is either fixed or said plainly as the thing still open.
 
 - **Every change in the diff is proved.** Logic has a test that would fail
-  without it. What users see has been tried in the app, with screenshots
+  without it, where the repo has a test suite; where it has none, it has
+  been run (a script, a REPL call, the command's output) and *How it was
+  checked* says how. Adding a test framework is a Decide, never a Fix. What
+  users see has been tried in the app, with screenshots
   (the `verify` skill), and the ones that show the change are in the PR
   description (*6. Open the PR*). A docs or skills change has been read
   through as its reader would. Anything that couldn't be checked here is
@@ -100,36 +119,46 @@ falls short is either fixed or said plainly as the thing still open.
    session to its activity (`subscribe_pr_activity`) where that tool
    exists. No PR → don't open one yet: it opens in *6. Open the PR*,
    reviewed, unless questions need it sooner (*4b*).
-4. Behind its base (`git fetch origin <base>`) → merge it in when it merges
-   cleanly, unless the repo says to rebase instead (then rebase only a
-   branch nobody else has pulled). Otherwise leave the branch as it is:
+4. Fetch the base into its remote-tracking ref, which a single-branch
+   clone won't do by itself: `git fetch origin
+   +refs/heads/<base>:refs/remotes/origin/<base>`. If `git merge-base
+   origin/<base> HEAD` finds nothing (a shallow clone), `git fetch
+   --deepen=200 origin` until it does, or `--unshallow`. Do the same before
+   every review round.
+5. Behind its base → leave it: GitHub tests the PR merged into its base,
+   and an unasked merge commit or rebase is noise, or breaks a linear
+   history. Bring it up to date only when the repo requires it (its docs,
+   or a "branch must be up to date" rule) or the driver asks, and say in
+   the close-out that it's behind. Either way:
    - **It conflicts** → stop, and tell the driver what conflicts. GitHub
      runs no checks on a conflicted PR. Don't resolve it unasked.
-   - **Merging would need care the repo calls out** (migrations to
-     renumber, generated files, a lockfile) → do what the repo's docs say,
-     or leave it behind and say so in the close-out.
-5. Unpushed commits, including that merge → run the repo's checks for what
+   - **Updating would need care the repo calls out** (migrations to
+     renumber, generated files, a lockfile) → do what the repo's docs say.
+6. Unpushed commits → run the repo's checks for what
    the branch changes, then push the branch once (`git push -u origin
    <branch>`). If a pre-push hook or a check fails, fix what it reports,
    commit, and push again before going on — the review must see the code
    the PR will contain.
-6. Note the size before review: `git diff --shortstat origin/<base>...HEAD`.
+7. Note the size before review: `git diff --shortstat origin/<base>...HEAD`.
    *3. Sort* compares against it.
-7. **Try the UI, alongside.** The review reads code; it doesn't use the
+8. **Try the UI, alongside.** The review reads code; it doesn't use the
    app. If this branch changes what users see and you haven't already tried
    this version in a browser, start the `verify` skill now in a background
    agent, in this checkout, and carry straight on to *2. Review*. If item 2
-   or 4 stopped for the driver, start it once the branch is settled. Tell it
-   to report only: no edits, commits or pushes, and none of the skill's
-   fixing, since the review is changing code alongside it. Wait for its
+   or 5 stopped for the driver, start it once the branch is settled. Tell it
+   to report only: no edits, commits or pushes, none of the skill's
+   fixing (the review is changing code alongside it), no sending files to
+   the person (report the screenshot paths), and never switching branches
+   or stashing in this checkout. A "before" it hasn't got comes from a `git
+   worktree` of `origin/<base>` on another port, or is reported missing. Wait for its
    report before sorting: each problem it saw is a finding like the
    review's, and the screenshots that show the change best go out with the
    close-out and in the PR description.
 
 ## 2. Review, in rounds
 
-**Round 1** reviews the whole branch, `origin/<base>...HEAD`. `git fetch
-origin <base>` first so the range is current. Invoke the `code-review`
+**Round 1** reviews the whole branch, `origin/<base>...HEAD`. Fetch the
+base first as in step 1.4, so the range is current. Invoke the `code-review`
 skill with the effort level, `--max-findings all` and that range, e.g.
 
 ```
@@ -247,8 +276,8 @@ Use exactly this shape, every time:
 ```markdown
 ## PR #<n> · <N> decisions for you
 
-Fixing <F> findings meanwhile (from `<pre-fix sha>`), dropping <X>
-(listed at the end).
+Into `<base>`. Fixing <F> findings meanwhile (from `<pre-fix sha>`),
+dropping <X> (listed at the end).
 <When there are any: "<Q> go to <name> as questions on the PR — don't merge
 until they've answered.">
 
@@ -327,7 +356,8 @@ Work quietly: no commentary between fixes. Every line written here pushes
 the brief further up the screen while the driver is reading it.
 
 - Group commits by problem, with messages that say what was wrong.
-- A fix for a logic bug comes with the test that would have caught it.
+- A fix for a logic bug comes with the test that would have caught it,
+  where the repo has a test suite (otherwise, run it and say how).
 - Before pushing, run the repo's fast checks for what you touched, and
   re-read your own diff for anything CI would reject.
 - Push once per round, when its Fix bucket is done, including any
@@ -342,25 +372,33 @@ Then the next round (step 2), until it stops.
 
 ## 6. Open the PR, or bring it up to date
 
-- **No PR** → open one into `<base>` (the GitHub MCP tools; `gh pr create
-  --base <base>` where there are none), not as a draft, unless a question
-  about the PR as a whole holds its merge (*4b*).
-- **A draft** → mark it ready (`update_pull_request` with `draft: false`),
-  unless a question to someone else is still open and the merge waits for
+- **No PR** → open one into `<base>`, not as a draft, unless a question
+  about the PR as a whole holds its merge (*4b*). Use the GitHub MCP tools;
+  where there are none, the REST API (`gh api repos/<owner>/<repo>/pulls
+  -f base=<base> -f head=<branch> -f title=… -F body=@<file>`, adding `-F
+  draft=true` for a draft). `gh pr create` uses GraphQL, which a cloud
+  session's proxy refuses.
+- **A draft** → mark it ready (the MCP's `update_pull_request` with `draft:
+  false`; else, in a cloud session, `gh api -X POST
+  repos/<owner>/<repo>/pulls/<n>/ccr/ready_for_review`; on a laptop, `gh pr
+  ready <n>`), unless a question to someone else is still open and the merge waits for
   it. Then it stays a draft until the answer is applied, so nobody merges
   it early.
 - **A question about the PR as a whole** (*4b*) goes out now, after the
   description and any screenshots are in place.
 - **Either way:** subscribe this session to the PR's activity
   (`subscribe_pr_activity`) where that tool exists, so CI results and
-  answers wake it. Make the description match what the branch is now.
+  answers wake it. Don't schedule a check-in to watch CI or a reply (the
+  `steward` skill has why). Make the description match what the branch is
+  now.
 
 **Screenshots.** When the PR changes what users see, the description shows
 it: the few `verify` screenshots that carry the change, before and after
 for existing UI, in a small table under the bullets. Use the repo's own
-script for this if it has one; otherwise `bash <this skill's
-folder>/scripts/pr-shots.sh push <files>` puts them on a side branch
-(`shots/<branch>`, never merged) and prints the image lines. Run it again
+script for this if it has one; otherwise `PR_SHOTS_PROTECTED=<base> bash
+<this skill's folder>/scripts/pr-shots.sh push <files>` puts them on a side branch
+(`shots/<branch>`, never merged) and prints the image lines; `steward`
+deletes the side branch when the PR closes. Run it again
 after a fix changes what they show, and replace the lines. Sample data
 only, never a real person's details: anyone who can read the repo can see
 them.
