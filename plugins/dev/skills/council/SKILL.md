@@ -1,6 +1,6 @@
 ---
 name: council
-description: Get independent opinions on the same thing from several models of different families, then weigh what they agree on. For judging UI screenshots against categories (the measure in a /hill-climb), comparing options, reviewing a plan before building it, or a second look at a risky diff. Use when someone says "council" or asks what other models think. On a diff it's an extra opinion asked for on purpose, never part of the repo's own code review.
+description: Get independent opinions on the same thing from several models of different families, then weigh what they agree on. For judging UI screenshots against categories (the measure in a /hill-climb), comparing options, reviewing a plan before building it, or a second look at a risky diff. Use when someone says "council" or asks what other models think, including a council planned for later in the task, so Codex's sign-in starts while the person is there. On a diff it's an extra opinion asked for on purpose, never part of the repo's own code review.
 argument-hint: "[what to judge: screenshots, options, a plan, a diff]"
 ---
 
@@ -23,6 +23,21 @@ real; what only one flags may be taste, or may be the one judge who saw it.
 Every judge runs at the same effort level. Opus and Fable are both Claude
 models, the family that usually wrote the work, so GPT is the only other
 family in the room.
+
+**Sign Codex in as soon as a council is in view**, not when the first
+judgement is due. The sign-in needs the person to approve a code on their
+phone, and they're most likely there at the start: a council planned for
+later in the task, named in a plan or spec, or part of a /hill-climb counts.
+Once per session, before any judge has started, bring Codex up to date
+(`npm install -g @openai/codex@latest`: quick where the environment's setup
+already installed it, and never while a judge is running from the old
+install). Then run `codex login status`; if it's not signed in, start
+`codex login --device-auth` in the background (the docstring has the
+details), give the person its link as a markdown link and its code alone in
+a fenced code block, so their app shows a copy button, and carry on with the
+task while they approve. Check the status again before the first judgement.
+If they left without approving, the GPT judge doesn't run: say so beside
+the result.
 
 **Spend it at the edge.** A council earns its cost where the work is at the
 edge of what one model gets right on its own: taste in a UI, a plan with
