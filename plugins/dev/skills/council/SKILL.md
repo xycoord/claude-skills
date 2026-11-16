@@ -28,15 +28,16 @@ family in the room.
 judgement is due. The sign-in needs the person to approve a code on their
 phone, and they're most likely there at the start: a council planned for
 later in the task, named in a plan or spec, or part of a /hill-climb counts.
-Bring Codex up to date (`npm install -g @openai/codex@latest`, quick where
-the environment's setup already installed it), then run `codex login
-status`; if it's not signed in, do the docstring's setup straight away,
-starting `codex login --device-auth` in the
-background, give the person its link (as a markdown link) and its code (alone
-in a fenced code block, so their app shows a copy button), and carry on with
-the task while they approve. Check the status again before the first judgement.
-If they left without approving, the GPT judge doesn't run: say so beside the
-result.
+Once per session, before any judge has started, bring Codex up to date
+(`npm install -g @openai/codex@latest`: quick where the environment's setup
+already installed it, and never while a judge is running from the old
+install). Then run `codex login status`; if it's not signed in, start
+`codex login --device-auth` in the background (the docstring has the
+details), give the person its link as a markdown link and its code alone in
+a fenced code block, so their app shows a copy button, and carry on with the
+task while they approve. Check the status again before the first judgement.
+If they left without approving, the GPT judge doesn't run: say so beside
+the result.
 
 **Spend it at the edge.** A council earns its cost where the work is at the
 edge of what one model gets right on its own: taste in a UI, a plan with
