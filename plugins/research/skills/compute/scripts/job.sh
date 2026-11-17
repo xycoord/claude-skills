@@ -65,7 +65,7 @@ delete_pod() {
     case $code in 204|404) return 0 ;; esac
     note "delete answered ${code:-nothing}; retrying in ${wait}s"
     sleep "$wait"
-    [ "$wait" -lt 600 ] && wait=$(( wait * 2 ))
+    wait=$(( wait * 2 > 600 ? 600 : wait * 2 ))
   done
 }
 
@@ -127,7 +127,7 @@ EOF
     [ "$code" = 201 ] && return 0
     note "report ($kind) answered ${code:-nothing}"
     [ "$i" -lt "$attempts" ] && sleep "$wait"
-    [ "$wait" -lt 300 ] && wait=$(( wait * 2 ))
+    wait=$(( wait * 2 > 300 ? 300 : wait * 2 ))
   done
   return 1
 }
