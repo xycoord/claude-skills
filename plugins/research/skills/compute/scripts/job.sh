@@ -2,28 +2,32 @@
 # Run one research job on a Runpod pod, keep its outputs on Hugging Face,
 # report on the experiment's PR, and delete the pod. Every way out ends in a
 # delete: success, failure, deadline, stall, bad settings, a crash in this
-# script, or a container restart (which is reported, never rerun).
+# script, or a container restart (reported, never rerun: a job only runs once
+# its start is recorded on HF).
 #
 # The pod's start command downloads this script from a pinned commit of
 # xycoord/claude-skills and runs it (see the compute skill). Settings come from
 # the pod's environment:
 #
-#   JOB_ID          claude-<experiment>-<n>; also names the results folder
+#   JOB_ID          claude-<name>; new for every launch (a reused one is
+#                   refused); also names the results folder
 #   REPO, COMMIT    the code to run: owner/name and a full commit sha
-#   JOB_CMD         run with bash from the repo root
+#   JOB_CMD         run with bash from the repo root; does its own setup
+#                   (e.g. `uv sync --frozen && uv run python …`)
 #   MAX_HOURS       the job's deadline, counted from the pod's creation
 #   RESULTS_REPO    HF dataset for results
-#   RESULTS_PATH    folder in it (default runs/$JOB_ID)
 # Optional:
-#   PR              a PR to post reports on (they wake a subscribed session)
-#   JOB_PREFLIGHT_CMD  run first; a failure ends the job early
+#   RESULTS_PATH    folder in RESULTS_REPO (default runs/$JOB_ID)
+#   PR              a PR in REPO to post reports on; they wake a subscribed
+#                   session and include log tails, so REPO should be private
 #   RESUME_FROM     a folder in RESULTS_REPO (an earlier run's runs/<id>)
 #                   copied into $JOB_OUT before the job starts
-#   STALL_MINUTES   end the job after this long with no new output in
-#                   $JOB_OUT (off unless set)
+#   STALL_MINUTES   end the job after this many minutes with no new output in
+#                   $JOB_OUT, its stdout included (off unless set)
 #   UPLOAD_MINUTES  how often $JOB_OUT is synced while running (15)
-#   RESCUE_MINUTES  if the final upload fails and there are results, the pod
-#                   stays up this long, retrying the upload every 10 min (120)
+#   RESCUE_MINUTES  if the final upload fails and the job wrote results, the
+#                   pod stays up this long retrying it every 10 min (120);
+#                   shorten it on expensive pods
 #   HF_TOKEN, GITHUB_TOKEN   from Runpod secrets
 #   RUNPOD_API_KEY, RUNPOD_POD_ID   set by Runpod; the key only reaches this pod
 #
@@ -33,13 +37,13 @@
 # name and renamed when complete is never uploaded half-written. Touching
 # $JOB_OUT/FIRST_LOOK uploads what's there and posts a "first-look" report.
 #
-# The pod is deleted by $DELETE_AT at the latest: the deadline, plus time for
-# the final upload, the rescue window and slack. A background backstop
-# enforces it even if this script hangs.
+# At $DELETE_AT (the deadline, plus time for the final upload, the rescue
+# window and slack) a background backstop starts deleting the pod, even if
+# this script hangs. Deletes retry until Runpod confirms them.
 
 set -o pipefail   # no -u: finish must never stop on an unset variable
 
-WORK=/workspace/job
+WORK=/job   # container disk, not /workspace, where volumes are often mounted
 RESULTS_PATH=${RESULTS_PATH:-runs/${JOB_ID:-unknown}}
 export JOB_OUT=$WORK/out
 LOG=$JOB_OUT/job.log
@@ -145,8 +149,9 @@ stop_job() {
   kill -KILL -- "-$JOB_PID" 2>/dev/null
 }
 
-has_results() {  # anything the job wrote beyond logs and markers
-  [ -n "$(find "$JOB_OUT" -type f ! -name job.log ! -name wrapper.log \
+has_results() {  # anything the job itself wrote, beyond logs and markers
+  [ -e "$WORK/running" ] && [ -n "$(find "$JOB_OUT" -type f -newer "$WORK/running" \
+    ! -name job.log ! -name wrapper.log \
     ! -name job_meta.json ! -name job_started.json ! -name FIRST_LOOK \
     ! -name '*.tmp' ! -name '*.partial' -print -quit)" ]
 }
@@ -173,11 +178,11 @@ json.dump(meta, sys.stdout, indent=2)
 EOF
   note "finished: $STATUS after ${mins} min"
   if [ -n "$NO_UPLOAD" ]; then
-    report "$STATUS" "$detail"
+    report "$STATUS" "$detail" 4
   elif upload final $(( FINAL_UPLOAD_MINUTES * 60 )); then
-    report "$STATUS" "$detail"
+    report "$STATUS" "$detail" 4
   elif ! has_results; then
-    report "$STATUS" "$detail; the upload failed too, but there were no results to keep"
+    report "$STATUS" "$detail; the upload failed too, but the job wrote no results to keep" 4
   else
     rescue_end=$(( $(date +%s) + RESCUE_MINUTES * 60 ))
     if [ -n "$DELETE_AT" ] && [ "$rescue_end" -gt $(( DELETE_AT - 300 )) ]; then
@@ -208,22 +213,25 @@ trap 'STATUS=${STATUS:-interrupted}; exit 1' INT TERM
 
 # Settings come first after the trap, so a mistake ends in a delete, not a
 # restart loop.
+bad() { STATUS=bad-settings; FAIL_STEP=$1; NO_UPLOAD=1; exit 1; }
 for v in JOB_ID REPO COMMIT JOB_CMD MAX_HOURS RESULTS_REPO \
          HF_TOKEN GITHUB_TOKEN RUNPOD_API_KEY RUNPOD_POD_ID; do
-  if [ -z "${!v:-}" ]; then
-    STATUS=bad-settings; FAIL_STEP="$v is not set"; NO_UPLOAD=1; exit 1
-  fi
+  [ -n "${!v:-}" ] || bad "$v is not set"
 done
-if ! awk -v h="$MAX_HOURS" 'BEGIN { exit !(h + 0 > 0) }'; then
-  STATUS=bad-settings; FAIL_STEP="MAX_HOURS=$MAX_HOURS"; NO_UPLOAD=1; exit 1
-fi
+[[ $MAX_HOURS =~ ^[0-9]+(\.[0-9]+)?$ ]] && awk -v h="$MAX_HOURS" 'BEGIN { exit !(h > 0) }' \
+  || bad "MAX_HOURS=$MAX_HOURS"
+for v in STALL_MINUTES UPLOAD_MINUTES RESCUE_MINUTES; do
+  [[ ${!v} =~ ^[0-9]+$ ]] || bad "$v=${!v} (whole minutes)"
+done
+[ "$UPLOAD_MINUTES" -gt 0 ] || bad "UPLOAD_MINUTES=0"
 
 # The deadline counts from the pod's creation, so a restart can't extend it.
 CREATED=$("${CURL[@]}" -H "Authorization: Bearer $RUNPOD_API_KEY" \
   "https://api.runpod.io/v2/pods/$RUNPOD_POD_ID" | python3 -c '
 import datetime, json, sys
 t = json.load(sys.stdin)["createdAt"].replace("Z", "+00:00")
-print(int(datetime.datetime.fromisoformat(t).timestamp()))' 2>/dev/null) || CREATED=$STARTED
+print(int(datetime.datetime.fromisoformat(t).timestamp()))' 2>/dev/null) \
+  || { CREATED=$STARTED; note "couldn't read the pod's creation time; the deadline counts from now"; }
 DEADLINE=$(awk -v s="$CREATED" -v h="$MAX_HOURS" 'BEGIN { printf "%d", s + h * 3600 }')
 DELETE_AT=$(( DEADLINE + (FINAL_UPLOAD_MINUTES + RESCUE_MINUTES + 15) * 60 ))
 # Backstop: delete at DELETE_AT whatever this script is doing by then.
@@ -241,25 +249,39 @@ step() {  # step <name> <command...>: a setup step inside the deadline
   FAIL_STEP=$name; exit 1
 }
 
-note "job $JOB_ID on pod $RUNPOD_POD_ID; deadline $(utc "$DEADLINE") UTC, deleted by $(utc "$DELETE_AT") UTC at the latest"
+note "job $JOB_ID on pod $RUNPOD_POD_ID; deadline $(utc "$DEADLINE") UTC; the backstop starts deleting at $(utc "$DELETE_AT") UTC"
 python3 -c 'import huggingface_hub' 2>/dev/null \
   || step "install huggingface_hub" pip install -q huggingface_hub
 
-# A restarted container finds the job's claim on HF and stops: never run a
-# job twice. (The local marker only catches a restart that kept the disk;
-# Runpod's restart gives a fresh container disk.)
-if [ -e "$WORK/started" ] || python3 -c '
-import os, sys
-from huggingface_hub import HfApi
-sys.exit(0 if HfApi().file_exists(os.environ["RESULTS_REPO"], os.environ["RESULTS_PATH"] + "/job_started.json", repo_type="dataset") else 1)' 2>>"$WORK/upload.err"; then
-  STATUS=restarted; FAIL_STEP="this job already started once"; NO_UPLOAD=1; exit 1
-fi
-touch "$WORK/started"
+# The job runs only once its start is recorded on HF. A claim already there
+# means this container restarted (same pod) or JOB_ID was reused (another
+# pod); an HF check that keeps failing stops the job too, rather than risk a
+# second run.
+claim_state=""
+for _ in 1 2 3; do
+  claim_state=$(timeout -k 30 120 python3 -c '
+import os
+from huggingface_hub import HfApi, hf_hub_download
+api, repo, path = HfApi(), os.environ["RESULTS_REPO"], os.environ["RESULTS_PATH"] + "/job_started.json"
+if not api.file_exists(repo, path, repo_type="dataset"):
+    print("none")
+else:
+    import json
+    with open(hf_hub_download(repo, path, repo_type="dataset")) as f:
+        print("pod:" + json.load(f).get("pod", "?"))' 2>>"$WORK/upload.err") && break
+  claim_state=""
+  sleep 20
+done
+case $claim_state in
+  none) ;;
+  "pod:$RUNPOD_POD_ID") STATUS=restarted; FAIL_STEP="the container restarted"; NO_UPLOAD=1; exit 1 ;;
+  pod:*) STATUS=job-id-used; FAIL_STEP="$JOB_ID already ran on ${claim_state#pod:}; use a new JOB_ID"; NO_UPLOAD=1; exit 1 ;;
+  *) STATUS=setup-failed; FAIL_STEP="couldn't check HF for an earlier start: $(tail -n 1 "$WORK/upload.err")"; NO_UPLOAD=1; exit 1 ;;
+esac
 printf '{"pod": "%s", "started": %s}\n' "$RUNPOD_POD_ID" "$STARTED" >"$JOB_OUT/job_started.json"
-claim_note=""
-upload claim 300 \
-  || claim_note="; couldn't record the start on HF, so a container restart would rerun the job"
-[ -z "${PR:-}" ] || report started "deadline $(utc "$DEADLINE") UTC$claim_note" 3 \
+upload claim 300 || upload claim 300 \
+  || { STATUS=setup-failed; FAIL_STEP="couldn't record the start on HF, so results couldn't be saved either"; NO_UPLOAD=1; exit 1; }
+[ -z "${PR:-}" ] || report started "deadline $(utc "$DEADLINE") UTC" 3 \
   || note "started report didn't go through"
 
 git config --global advice.detachedHead false
@@ -270,10 +292,6 @@ step "fetch $REPO@${COMMIT:0:12}" bash -c '
   git -c http.extraHeader="$1" fetch -q --depth 1 "https://github.com/$2.git" "$3" &&
   git checkout -q FETCH_HEAD' "$WORK/repo" "$GIT_AUTH" "$REPO" "$COMMIT"
 cd "$WORK/repo" || exit 1
-command -v uv >/dev/null || step "install uv" pip install -q uv
-if [ -f pyproject.toml ]; then
-  step "uv sync" uv sync --frozen
-fi
 if [ -n "${RESUME_FROM:-}" ]; then
   step "resume from $RESUME_FROM" python3 -c '
 import os, shutil, tempfile
@@ -291,15 +309,8 @@ for root, _, files in os.walk(base):
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         shutil.move(os.path.join(root, f), dst)'
 fi
-if [ -n "${JOB_PREFLIGHT_CMD:-}" ]; then
-  note "preflight: $JOB_PREFLIGHT_CMD"
-  if ! timeout -k 60 "$(left)" bash -c "$JOB_PREFLIGHT_CMD" >>"$LOG" 2>&1; then
-    if [ "$(date +%s)" -ge "$DEADLINE" ]; then STATUS=deadline; else STATUS=preflight-failed; fi
-    exit 1
-  fi
-fi
-
 note "run: ${JOB_CMD%%$'\n'*}"
+touch "$WORK/running"
 set -m   # the job gets its own process group, so it can be stopped as a whole
 bash -c "$JOB_CMD" >>"$LOG" 2>&1 &
 JOB_PID=$!
