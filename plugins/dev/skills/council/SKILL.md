@@ -33,9 +33,21 @@ Once per session, before any judge has started, bring Codex up to date
 already installed it, and never while a judge is running from the old
 install). Then run `codex login status`; if it's not signed in, start
 `codex login --device-auth` in the background (the docstring has the
-details), give the person its link as a markdown link and its code alone in
-a fenced code block, so their app shows a copy button, and carry on with the
-task while they approve. Check the status again before the first judgement.
+details) and read its output for the link and code. Hand them over in a
+message of their own, sent before any other work and never folded into a
+progress update, in exactly this shape, so the link is one tap and the code
+has a copy button:
+
+````markdown
+**Codex sign-in for the council:** open [<link without https://>](<link>) and enter
+
+```
+<code>
+```
+````
+
+Then carry on with the task while they approve. Check the status again
+before the first judgement.
 If they left without approving, the GPT judge doesn't run: say so beside
 the result.
 
