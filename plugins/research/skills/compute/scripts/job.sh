@@ -12,24 +12,26 @@
 #   REPO, COMMIT    the code to run: owner/name and a full commit sha
 #   JOB_CMD         run with bash from the repo root
 #   MAX_HOURS       the job's deadline, counted from the pod's creation
-#   PR              the experiment PR that gets the reports
-#   JOB_PREFLIGHT_CMD  optional; run first, a failure ends the job early
 #   RESULTS_REPO    HF dataset for results
 #   RESULTS_PATH    folder in it (default runs/$JOB_ID)
-#   RESUME_FROM     optional; a folder in RESULTS_REPO (an earlier run's
-#                   runs/<id>) copied into $JOB_OUT before the job starts
-#   STALL_MINUTES   no new output in $JOB_OUT for this long ends the job (30)
+# Optional:
+#   PR              a PR to post reports on (they wake a subscribed session)
+#   JOB_PREFLIGHT_CMD  run first; a failure ends the job early
+#   RESUME_FROM     a folder in RESULTS_REPO (an earlier run's runs/<id>)
+#                   copied into $JOB_OUT before the job starts
+#   STALL_MINUTES   end the job after this long with no new output in
+#                   $JOB_OUT (off unless set)
 #   UPLOAD_MINUTES  how often $JOB_OUT is synced while running (15)
 #   RESCUE_MINUTES  if the final upload fails and there are results, the pod
 #                   stays up this long, retrying the upload every 10 min (120)
 #   HF_TOKEN, GITHUB_TOKEN   from Runpod secrets
 #   RUNPOD_API_KEY, RUNPOD_POD_ID   set by Runpod; the key only reaches this pod
 #
-# The job's side: write everything worth keeping to $JOB_OUT, each file under
-# a temporary name (*.tmp or *.partial, never uploaded) renamed when complete;
-# print progress (its stdout is $JOB_OUT/job.log) at least every
-# STALL_MINUTES; touch $JOB_OUT/FIRST_LOOK once its first slice of results is
-# there. This script's own notes go to $JOB_OUT/wrapper.log.
+# The job writes what's worth keeping to $JOB_OUT; its stdout is
+# $JOB_OUT/job.log and this script's notes go to $JOB_OUT/wrapper.log. Files
+# named *.tmp or *.partial are never uploaded, so a file written under such a
+# name and renamed when complete is never uploaded half-written. Touching
+# $JOB_OUT/FIRST_LOOK uploads what's there and posts a "first-look" report.
 #
 # The pod is deleted by $DELETE_AT at the latest: the deadline, plus time for
 # the final upload, the rescue window and slack. A background backstop
@@ -44,7 +46,7 @@ LOG=$JOB_OUT/job.log
 WLOG=$JOB_OUT/wrapper.log
 mkdir -p "$JOB_OUT"
 export RESULTS_REPO RESULTS_PATH PYTHONUNBUFFERED=1
-STALL_MINUTES=${STALL_MINUTES:-30}
+STALL_MINUTES=${STALL_MINUTES:-0}
 UPLOAD_MINUTES=${UPLOAD_MINUTES:-15}
 RESCUE_MINUTES=${RESCUE_MINUTES:-120}
 FINAL_UPLOAD_MINUTES=45
@@ -206,7 +208,7 @@ trap 'STATUS=${STATUS:-interrupted}; exit 1' INT TERM
 
 # Settings come first after the trap, so a mistake ends in a delete, not a
 # restart loop.
-for v in JOB_ID REPO COMMIT JOB_CMD MAX_HOURS PR RESULTS_REPO \
+for v in JOB_ID REPO COMMIT JOB_CMD MAX_HOURS RESULTS_REPO \
          HF_TOKEN GITHUB_TOKEN RUNPOD_API_KEY RUNPOD_POD_ID; do
   if [ -z "${!v:-}" ]; then
     STATUS=bad-settings; FAIL_STEP="$v is not set"; NO_UPLOAD=1; exit 1
@@ -257,7 +259,8 @@ printf '{"pod": "%s", "started": %s}\n' "$RUNPOD_POD_ID" "$STARTED" >"$JOB_OUT/j
 claim_note=""
 upload claim 300 \
   || claim_note="; couldn't record the start on HF, so a container restart would rerun the job"
-report started "deadline $(utc "$DEADLINE") UTC$claim_note" 3 || note "started report didn't go through"
+[ -z "${PR:-}" ] || report started "deadline $(utc "$DEADLINE") UTC$claim_note" 3 \
+  || note "started report didn't go through"
 
 git config --global advice.detachedHead false
 # The token goes in a header, not the URL, so git can't echo it into the log.
@@ -309,13 +312,14 @@ while kill -0 "$JOB_PID" 2>/dev/null; do
   if [ "$now" -ge "$DEADLINE" ]; then
     STATUS=deadline; exit 1
   fi
-  if [ -z "$(find "$JOB_OUT" -type f ! -name wrapper.log ! -name job_meta.json \
-      -newermt "${STALL_MINUTES} minutes ago" -print -quit)" ]; then
+  if [ "$STALL_MINUTES" -gt 0 ] && [ -z "$(find "$JOB_OUT" -type f ! -name wrapper.log \
+      ! -name job_meta.json -newermt "${STALL_MINUTES} minutes ago" -print -quit)" ]; then
     STATUS=stalled; exit 1
   fi
   if [ -z "$first_look_sent" ] && [ -e "$JOB_OUT/FIRST_LOOK" ]; then
-    # Sent only once the slice is on HF and GitHub has the report.
-    if upload first-look 600 && report first-look "results so far are uploaded" 3; then
+    # Done only once the slice is on HF and GitHub has any report.
+    if upload first-look 600 \
+        && { [ -z "${PR:-}" ] || report first-look "results so far are uploaded" 3; }; then
       first_look_sent=1
     fi
     last_upload=$now
