@@ -32,7 +32,7 @@ In one short message:
   agreed.
 - **What it will cost**: a council per hill per round at least, plus any
   look across hills and comparisons. Start Codex's sign-in (the council's
-  runner) while they're there: it needs them.
+  runner) while they're there, as `/council` says: it needs them.
 
 ## The loop
 
