@@ -104,7 +104,8 @@ job=<id> -->` for `first-look`, `done`, `failed`, `preflight-failed`,
   experiment expected before the run (label balance, a few decoded examples,
   metrics not at chance or suspiciously perfect). If it's wrong, delete the
   pod (`delete-pod`), fix, smoke-test and relaunch.
-- **A failure:** read the log tail in the report and the full `job.log` on HF.
+- **A failure:** read the log tails in the report, then the full `job.log`
+  (the job's output) and `wrapper.log` (setup, uploads, the stop) on HF.
   Relaunch at most once on your own; after that, stop and tell the person.
 - **`upload-failed`:** copy the results off with `exec-pod` before the rescue
   window ends, then delete the pod.

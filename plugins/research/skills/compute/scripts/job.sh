@@ -22,9 +22,11 @@
 #   HF_TOKEN, GITHUB_TOKEN   from Runpod secrets
 #   RUNPOD_API_KEY, RUNPOD_POD_ID   set by Runpod; the key only reaches this pod
 #
-# The job writes everything worth keeping to $JOB_OUT, prints progress (to
-# $JOB_OUT/job.log, its stdout) at least every STALL_MINUTES, and touches $JOB_OUT/FIRST_LOOK once its first
-# slice of results is there, which triggers an upload and a "first-look" report.
+# The job writes everything worth keeping to $JOB_OUT, prints progress (its
+# stdout is $JOB_OUT/job.log) at least every STALL_MINUTES, and touches
+# $JOB_OUT/FIRST_LOOK once its first slice of results is there, which triggers
+# an upload and a "first-look" report. This script's own notes go to
+# $JOB_OUT/wrapper.log.
 
 set -uo pipefail
 
