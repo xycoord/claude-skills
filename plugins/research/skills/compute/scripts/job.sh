@@ -39,14 +39,11 @@ set -o pipefail   # no -u: finish must never stop on an unset variable
 
 WORK=/workspace/job
 RESULTS_PATH=${RESULTS_PATH:-runs/${JOB_ID:-unknown}}
-# $JOB_OUT sits at $RESULTS_PATH under $HFROOT, so a resumable large-folder
-# upload of $HFROOT puts it in the right place.
-HFROOT=$WORK/hf
-export JOB_OUT=$HFROOT/$RESULTS_PATH
+export JOB_OUT=$WORK/out
 LOG=$JOB_OUT/job.log
 WLOG=$JOB_OUT/wrapper.log
 mkdir -p "$JOB_OUT"
-export RESULTS_REPO RESULTS_PATH HFROOT PYTHONUNBUFFERED=1
+export RESULTS_REPO RESULTS_PATH PYTHONUNBUFFERED=1
 STALL_MINUTES=${STALL_MINUTES:-30}
 UPLOAD_MINUTES=${UPLOAD_MINUTES:-15}
 RESCUE_MINUTES=${RESCUE_MINUTES:-120}
@@ -72,16 +69,18 @@ delete_pod() {
   done
 }
 
-# upload <why> <seconds>: resumable, so a timed-out attempt isn't wasted.
+# upload <why> <seconds>. Uploads go through Xet, which skips content the
+# Hub already has, so an attempt cut off by the time limit isn't all wasted.
+# Only long-standing huggingface_hub APIs: pip installs whatever is latest.
 upload() {
   [ -z "$NO_UPLOAD" ] || return 1
   timeout -k 60 "$2" python3 - "$1" >/dev/null 2>>"$WORK/upload.err" <<'EOF' && return 0
-import os
-from huggingface_hub import upload_large_folder
-upload_large_folder(repo_id=os.environ["RESULTS_REPO"], repo_type="dataset",
-                    folder_path=os.environ["HFROOT"],
-                    allow_patterns=[os.environ["RESULTS_PATH"] + "/**"],
-                    ignore_patterns=["*.tmp", "*.partial"], print_report=False)
+import os, sys
+from huggingface_hub import HfApi
+HfApi().upload_folder(repo_id=os.environ["RESULTS_REPO"], repo_type="dataset",
+                      folder_path=os.environ["JOB_OUT"], path_in_repo=os.environ["RESULTS_PATH"],
+                      ignore_patterns=["*.tmp", "*.partial"],
+                      commit_message=f"{os.environ['JOB_ID']}: {sys.argv[1]}")
 EOF
   note "upload ($1) failed: $(tail -n 1 "$WORK/upload.err" 2>/dev/null)"
   return 1
@@ -242,11 +241,13 @@ note "job $JOB_ID on pod $RUNPOD_POD_ID; deadline $(utc "$DEADLINE") UTC, delete
 python3 -c 'import huggingface_hub' 2>/dev/null \
   || step "install huggingface_hub" pip install -q huggingface_hub
 
-# A restarted container finds its own claim and stops: never run a job twice.
+# A restarted container finds the job's claim on HF and stops: never run a
+# job twice. (The local marker only catches a restart that kept the disk;
+# Runpod's restart gives a fresh container disk.)
 if [ -e "$WORK/started" ] || python3 -c '
 import os, sys
-from huggingface_hub import file_exists
-sys.exit(0 if file_exists(os.environ["RESULTS_REPO"], os.environ["RESULTS_PATH"] + "/job_started.json", repo_type="dataset") else 1)' 2>>"$WORK/upload.err"; then
+from huggingface_hub import HfApi
+sys.exit(0 if HfApi().file_exists(os.environ["RESULTS_REPO"], os.environ["RESULTS_PATH"] + "/job_started.json", repo_type="dataset") else 1)' 2>>"$WORK/upload.err"; then
   STATUS=restarted; FAIL_STEP="this job already started once"; NO_UPLOAD=1; exit 1
 fi
 touch "$WORK/started"
