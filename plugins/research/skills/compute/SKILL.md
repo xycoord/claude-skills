@@ -13,10 +13,12 @@ that well.
 ## Before spending
 
 - **The budget.** The repo's `CLAUDE.md` names a daily soft budget. You can't
-  read the balance (no tool reaches it), so before a launch read today's spend
-  with `list-billing` (`bucketSize: day`), add the launch's worst case (hourly
-  price × GPU count × `MAX_HOURS`), and stop and ask if it would cross the
-  budget. Say the hourly price in a line before every create.
+  read the balance (no tool reaches it), so before a launch add up: today's
+  spend from `list-billing` (`bucketSize: day`; it lags by an hour or more),
+  plus what pods already running will cost by their deadlines (`list-pods`:
+  each one's `cost` × hours left), plus the launch's worst case (hourly price ×
+  `MAX_HOURS`). Stop and ask if the total would cross the budget. Say the
+  hourly price in a line before every create.
 - **Smoke-test small first.** Run the same code path on a slice of the data on
   the cheapest card that fits, before the full run.
 - **Commit and push** the code a job runs. A job runs a pinned commit, never

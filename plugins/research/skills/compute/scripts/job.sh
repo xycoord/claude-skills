@@ -3,8 +3,9 @@
 # report on the experiment's PR, and delete the pod: on success, failure,
 # deadline, stall or a crash in this script. The pod never outlives the job.
 #
-# The pod's start command decodes this script from JOB_SH_B64 and runs it
-# (see the compute skill). Settings come from the pod's environment:
+# The pod's start command downloads this script from a pinned commit of
+# xycoord/claude-skills and runs it (see the compute skill). Settings come from
+# the pod's environment:
 #
 #   JOB_ID          claude-<experiment>-<n>; also names the results folder
 #   REPO, COMMIT    the code to run: owner/name and a full commit sha
@@ -21,8 +22,8 @@
 #   HF_TOKEN, GITHUB_TOKEN   from Runpod secrets
 #   RUNPOD_API_KEY, RUNPOD_POD_ID   set by Runpod; the key only reaches this pod
 #
-# The job writes everything worth keeping to $JOB_OUT, prints progress at
-# least every STALL_MINUTES, and touches $JOB_OUT/FIRST_LOOK once its first
+# The job writes everything worth keeping to $JOB_OUT, prints progress (to
+# $JOB_OUT/job.log, its stdout) at least every STALL_MINUTES, and touches $JOB_OUT/FIRST_LOOK once its first
 # slice of results is there, which triggers an upload and a "first-look" report.
 
 set -uo pipefail
@@ -38,7 +39,9 @@ export RESULTS_REPO RESULTS_PATH
 
 WORK=/workspace/job
 export JOB_OUT=$WORK/out
-LOG=$JOB_OUT/job.log
+LOG=$JOB_OUT/job.log        # the job's output
+WLOG=$JOB_OUT/wrapper.log   # this script's own notes, kept apart so they
+                            # don't count as the job making progress
 mkdir -p "$JOB_OUT"
 
 STARTED=$(date +%s)
@@ -48,7 +51,7 @@ JOB_EXIT=""
 JOB_PID=""
 FAIL_STEP=""
 
-note() { echo "[job.sh $(date -u +%H:%M:%S)] $*" | tee -a "$LOG"; }
+note() { echo "[job.sh $(date -u +%H:%M:%S)] $*" | tee -a "$WLOG"; }
 
 # Backstop for a hang in this script itself (an upload or report that never
 # returns): delete the pod 30 minutes after the deadline (and any rescue window)
@@ -57,11 +60,10 @@ note() { echo "[job.sh $(date -u +%H:%M:%S)] $*" | tee -a "$LOG"; }
   curl -s -o /dev/null -X DELETE -H "Authorization: Bearer $RUNPOD_API_KEY" \
     "https://api.runpod.io/v2/pods/$RUNPOD_POD_ID" ) &
 
-upload() {
-  local why=$1
-  # The Python API, not the `hf` CLI: Runpod's images ship huggingface_hub
-  # without the CLI on PATH.
-  timeout 30m python3 - "$why" >/dev/null 2>>"$WORK/upload.err" <<'EOF' && return 0
+upload() {  # upload <why> [<timeout>]
+  local why=$1 limit=${2:-30m}
+  # The Python API, not the `hf` CLI: the image may lack the CLI.
+  timeout "$limit" python3 - "$why" >/dev/null 2>>"$WORK/upload.err" <<'EOF' && return 0
 import os, sys
 from huggingface_hub import upload_folder
 upload_folder(repo_id=os.environ["RESULTS_REPO"], repo_type="dataset",
@@ -80,12 +82,13 @@ report() {
 import json, os, sys
 kind, detail = sys.argv[1], sys.argv[2]
 env = os.environ
-tail = ""
-try:
-    with open(os.path.join(env["JOB_OUT"], "job.log"), errors="replace") as f:
-        tail = "".join(f.readlines()[-30:])
-except OSError:
-    pass
+def last(name, n):
+    try:
+        with open(os.path.join(env["JOB_OUT"], name), errors="replace") as f:
+            return "".join(f.readlines()[-n:])
+    except OSError:
+        return ""
+tail = last("wrapper.log", 10) + "--- job output ---\n" + last("job.log", 25)
 for name in ("HF_TOKEN", "GITHUB_TOKEN", "RUNPOD_API_KEY"):
     if env.get(name):
         tail = tail.replace(env[name], "***")
@@ -147,6 +150,8 @@ EOF
   local detail="${FAIL_STEP:+at: $FAIL_STEP, }exit ${JOB_EXIT:-none}, ${mins} min"
   if upload "$STATUS" || upload "$STATUS (retry)"; then
     report "$STATUS" "$detail"
+  elif [ -z "$(find "$JOB_OUT" -type f ! -name job.log ! -name wrapper.log ! -name job_meta.json -print -quit)" ]; then
+    report "$STATUS" "$detail; upload failed too, but the job wrote no results, so the pod goes now"
   else
     # Deleting now would lose the results: keep the pod up so they can be
     # copied off with exec-pod, then delete it anyway.
@@ -208,15 +213,19 @@ while kill -0 "$JOB_PID" 2>/dev/null; do
   if [ "$now" -ge "$DEADLINE" ]; then
     STATUS=deadline; exit 1
   fi
-  if [ -z "$(find "$JOB_OUT" -newermt "${STALL_MINUTES} minutes ago" -print -quit)" ]; then
+  if [ -z "$(find "$JOB_OUT" -type f ! -name wrapper.log ! -name job_meta.json -newermt "${STALL_MINUTES} minutes ago" -print -quit)" ]; then
     STATUS=stalled; exit 1
   fi
   if [ -z "$first_look_sent" ] && [ -e "$JOB_OUT/FIRST_LOOK" ]; then
-    first_look_sent=1
-    upload first-look && report first-look "results so far are uploaded"
+    # Sent only once the slice is on HF; a failed upload retries next round.
+    if upload first-look 10m; then
+      report first-look "results so far are uploaded"
+      first_look_sent=1
+    fi
     last_upload=$now
   elif [ $(( now - last_upload )) -ge $(( UPLOAD_MINUTES * 60 )) ]; then
-    upload progress
+    # Short limit, so a slow upload can't hold off the deadline and stall checks.
+    upload progress 10m
     last_upload=$now
   fi
 done
