@@ -183,9 +183,11 @@ EOF
     fi
     report upload-failed "$STATUS, $detail; results are only on this pod; retrying the upload every 10 min until $(utc "$rescue_end") UTC, then the pod is deleted" 3
     local uploaded=""
-    while [ "$(date +%s)" -lt "$rescue_end" ]; do
-      sleep 600
-      if upload rescue 540; then
+    local left_s
+    while left_s=$(( rescue_end - $(date +%s) )); [ "$left_s" -gt 60 ]; do
+      sleep $(( left_s < 600 ? left_s - 60 : 600 ))
+      left_s=$(( rescue_end - $(date +%s) ))
+      if upload rescue $(( left_s < 540 ? (left_s > 60 ? left_s : 60) : 540 )); then
         uploaded=1
         report "$STATUS" "$detail; uploaded on a later try"
         break
@@ -252,8 +254,10 @@ sys.exit(0 if HfApi().file_exists(os.environ["RESULTS_REPO"], os.environ["RESULT
 fi
 touch "$WORK/started"
 printf '{"pod": "%s", "started": %s}\n' "$RUNPOD_POD_ID" "$STARTED" >"$JOB_OUT/job_started.json"
-upload claim 300 || note "couldn't record the start on HF; a restart would only be caught locally"
-report started "deadline $(utc "$DEADLINE") UTC" 3 || note "started report didn't go through"
+claim_note=""
+upload claim 300 \
+  || claim_note="; couldn't record the start on HF, so a container restart would rerun the job"
+report started "deadline $(utc "$DEADLINE") UTC$claim_note" 3 || note "started report didn't go through"
 
 git config --global advice.detachedHead false
 # The token goes in a header, not the URL, so git can't echo it into the log.
@@ -316,7 +320,7 @@ while kill -0 "$JOB_PID" 2>/dev/null; do
     fi
     last_upload=$now
   elif [ $(( now - last_upload )) -ge $(( UPLOAD_MINUTES * 60 )) ]; then
-    upload progress 600   # resumable; a short limit keeps the checks running
+    upload progress 600   # a short limit keeps the checks running
     last_upload=$now
   fi
 done
