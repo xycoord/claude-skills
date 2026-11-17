@@ -16,6 +16,8 @@
 #   RESULTS_PATH    folder in it (default runs/$JOB_ID)
 #   STALL_MINUTES   no new output in $JOB_OUT for this long ends the job (30)
 #   UPLOAD_MINUTES  how often $JOB_OUT is synced while running (15)
+#   RESCUE_MINUTES  if the final upload fails, the pod stays up this long so
+#                   the results can be copied off before it's deleted (120)
 #   HF_TOKEN, GITHUB_TOKEN   from Runpod secrets
 #   RUNPOD_API_KEY, RUNPOD_POD_ID   set by Runpod; the key only reaches this pod
 #
@@ -30,6 +32,7 @@ RESULTS_REPO=${RESULTS_REPO:-xycoord/research-results}
 RESULTS_PATH=${RESULTS_PATH:-runs/$JOB_ID}
 STALL_MINUTES=${STALL_MINUTES:-30}
 UPLOAD_MINUTES=${UPLOAD_MINUTES:-15}
+RESCUE_MINUTES=${RESCUE_MINUTES:-120}
 PR=${PR:-}
 export RESULTS_REPO RESULTS_PATH
 
@@ -48,16 +51,23 @@ FAIL_STEP=""
 note() { echo "[job.sh $(date -u +%H:%M:%S)] $*" | tee -a "$LOG"; }
 
 # Backstop for a hang in this script itself (an upload or report that never
-# returns): delete the pod 30 minutes after the deadline whatever else happens.
-( sleep $(( DEADLINE - STARTED + 1800 ))
+# returns): delete the pod 30 minutes after the deadline (and any rescue window)
+# whatever else happens.
+( sleep $(( DEADLINE - STARTED + 1800 + RESCUE_MINUTES * 60 ))
   curl -s -o /dev/null -X DELETE -H "Authorization: Bearer $RUNPOD_API_KEY" \
     "https://api.runpod.io/v2/pods/$RUNPOD_POD_ID" ) &
 
 upload() {
   local why=$1
-  timeout 30m hf upload "$RESULTS_REPO" "$JOB_OUT" "$RESULTS_PATH" \
-    --repo-type dataset --commit-message "$JOB_ID: $why" >/dev/null 2>>"$WORK/upload.err" \
-    && return 0
+  # The Python API, not the `hf` CLI: Runpod's images ship huggingface_hub
+  # without the CLI on PATH.
+  timeout 30m python3 - "$why" >/dev/null 2>>"$WORK/upload.err" <<'EOF' && return 0
+import os, sys
+from huggingface_hub import upload_folder
+upload_folder(repo_id=os.environ["RESULTS_REPO"], repo_type="dataset",
+              folder_path=os.environ["JOB_OUT"], path_in_repo=os.environ["RESULTS_PATH"],
+              commit_message=f"{os.environ['JOB_ID']}: {sys.argv[1]}")
+EOF
   note "upload ($why) failed: $(tail -n 1 "$WORK/upload.err" 2>/dev/null)"
   return 1
 }
@@ -134,8 +144,15 @@ json.dump({
 }, sys.stdout, indent=2)
 EOF
   note "finished: $STATUS after ${mins} min; uploading and deleting the pod"
-  upload "$STATUS" || upload "$STATUS (retry)"
-  report "$STATUS" "${FAIL_STEP:+at: $FAIL_STEP, }exit ${JOB_EXIT:-none}, ${mins} min"
+  local detail="${FAIL_STEP:+at: $FAIL_STEP, }exit ${JOB_EXIT:-none}, ${mins} min"
+  if upload "$STATUS" || upload "$STATUS (retry)"; then
+    report "$STATUS" "$detail"
+  else
+    # Deleting now would lose the results: keep the pod up so they can be
+    # copied off with exec-pod, then delete it anyway.
+    report upload-failed "$STATUS, $detail; results are only on pod $RUNPOD_POD_ID in $JOB_OUT, which is deleted in $RESCUE_MINUTES min"
+    sleep $(( RESCUE_MINUTES * 60 ))
+  fi
   if ! delete_pod; then
     report "pod-delete-failed" "delete it by hand: pod $RUNPOD_POD_ID"
   fi
@@ -177,7 +194,7 @@ if [ -n "${JOB_PREFLIGHT_CMD:-}" ]; then
   fi
 fi
 
-note "run: $JOB_CMD"
+note "run: ${JOB_CMD%%$'\n'*}"
 setsid bash -c "$JOB_CMD" >>"$LOG" 2>&1 &
 JOB_PID=$!
 last_upload=$(date +%s)
