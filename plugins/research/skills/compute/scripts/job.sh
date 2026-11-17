@@ -175,6 +175,9 @@ step() {  # step <name> <command...>: run a setup step inside the deadline
 }
 
 note "job $JOB_ID on pod $RUNPOD_POD_ID, deadline in ${MAX_HOURS} h"
+# First, so results can still be uploaded if a later step fails.
+python3 -c 'import huggingface_hub' 2>/dev/null \
+  || step "install huggingface_hub" pip install -q huggingface_hub
 git config --global advice.detachedHead false
 # The token goes in a header, not the URL, so git can't echo it into the log.
 GIT_AUTH="Authorization: Basic $(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"

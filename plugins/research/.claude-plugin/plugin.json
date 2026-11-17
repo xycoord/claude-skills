@@ -1,0 +1,5 @@
+{
+  "name": "research",
+  "description": "Running ML research with Claude: compute on Runpod that cleans up after itself, with jobs that report back on the experiment's PR (compute)",
+  "author": { "name": "xycoord" }
+}

@@ -1,12 +1,19 @@
 {
   "name": "xycoord",
   "description": "Logan's skills for Claude",
-  "owner": { "name": "xycoord" },
+  "owner": {
+    "name": "xycoord"
+  },
   "plugins": [
     {
       "name": "dev",
       "source": "./plugins/dev",
       "description": "Independent opinions from several model families (/council), improving something round by round against a fixed measure (/hill-climb), and getting a branch to ready: review in rounds and a problem-first PR (/pr-review), trying the change in a browser (verify), and looking after the PR (steward)"
+    },
+    {
+      "name": "research",
+      "source": "./plugins/research",
+      "description": "Running ML research with Claude: compute on Runpod that cleans up after itself, with jobs that report back on the experiment's PR (compute)"
     }
   ]
 }
