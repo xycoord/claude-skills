@@ -257,9 +257,10 @@ python3 -c 'import huggingface_hub' 2>/dev/null \
 # means this container restarted (same pod) or JOB_ID was reused (another
 # pod); an HF check that keeps failing stops the job too, rather than risk a
 # second run.
-claim_state=""
-for _ in 1 2 3; do
-  claim_state=$(timeout -k 30 120 python3 -c '
+check_claim() {  # prints none, pod:<id>, or nothing on failure (after retries)
+  local state
+  for _ in 1 2 3; do
+    state=$(timeout -k 30 120 python3 -c '
 import os
 from huggingface_hub import HfApi, hf_hub_download
 api, repo, path = HfApi(), os.environ["RESULTS_REPO"], os.environ["RESULTS_PATH"] + "/job_started.json"
@@ -268,10 +269,11 @@ if not api.file_exists(repo, path, repo_type="dataset"):
 else:
     import json
     with open(hf_hub_download(repo, path, repo_type="dataset")) as f:
-        print("pod:" + json.load(f).get("pod", "?"))' 2>>"$WORK/upload.err") && break
-  claim_state=""
-  sleep 20
-done
+        print("pod:" + json.load(f).get("pod", "?"))' 2>>"$WORK/upload.err") && { echo "$state"; return; }
+    sleep 20
+  done
+}
+claim_state=$(check_claim)
 case $claim_state in
   none) ;;
   "pod:$RUNPOD_POD_ID") STATUS=restarted; FAIL_STEP="the container restarted"; NO_UPLOAD=1; exit 1 ;;
@@ -281,6 +283,14 @@ esac
 printf '{"pod": "%s", "started": %s}\n' "$RUNPOD_POD_ID" "$STARTED" >"$JOB_OUT/job_started.json"
 upload claim 300 || upload claim 300 \
   || { STATUS=setup-failed; FAIL_STEP="couldn't record the start on HF, so results couldn't be saved either"; NO_UPLOAD=1; exit 1; }
+# Two pods launched together with one JOB_ID both get this far; the claim on
+# HF afterwards is the last one written, and only that pod goes on.
+claim_state=$(check_claim)
+case $claim_state in
+  "pod:$RUNPOD_POD_ID") ;;
+  pod:*) STATUS=job-id-used; FAIL_STEP="pod ${claim_state#pod:} claimed $JOB_ID at the same time"; NO_UPLOAD=1; exit 1 ;;
+  *) STATUS=setup-failed; FAIL_STEP="couldn't read back the start just recorded on HF"; NO_UPLOAD=1; exit 1 ;;
+esac
 [ -z "${PR:-}" ] || report started "deadline $(utc "$DEADLINE") UTC" 3 \
   || note "started report didn't go through"
 

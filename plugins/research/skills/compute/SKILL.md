@@ -49,8 +49,9 @@ and data, and facts about Runpod that are hard to find out.
 ## A dev pod: for work you're supervising
 
 For debugging, poking at a loaded model, or a run you'll watch. Its deadline
-is `DEADLINE` (Unix seconds, so a restart can't extend it). Write a later time
-to `/deadline` to extend it; a restart falls back to `DEADLINE`.
+is `DEADLINE` (Unix seconds, so a restart can't extend it; without it the pod
+deletes itself at once). Write a later time to `/deadline` to extend it; a
+restart falls back to `DEADLINE`.
 
 ```json
 {
