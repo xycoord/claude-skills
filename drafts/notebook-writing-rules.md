@@ -13,7 +13,7 @@ Everything else is generated, never written by hand: the Threads home, the cross
 
 ## Section labels (in the margin, plain words)
 Thread page, per finding: [strength and dated status] Finding · Result · Method (ending with the experiments it rests on, each with its role) · Confidence · Caveats · Implication. Then Next · History.
-Experiment page: Since then · Answer · Why we ran it · Method · Result · Sanity checks · Examples · Finding.
+Experiment page: Since then · Answer · Why we ran it · What was compared · Result · Method · Checks · Examples · Finding. This follows the results-page order in `style:functional-design`: what was compared comes before the results because it introduces the things compared and their colours.
 
 ## Rules
 1. **Claim:** one sentence, 25 words or fewer, that stands alone. It names:
@@ -57,7 +57,7 @@ Experiment page: Since then · Answer · Why we ran it · Method · Result · Sa
 
 What's visible vs hidden: verification material is the hard part and stays visible. Bookkeeping (IDs, costs, run names, audit records, full setup) goes under "Code, data and records".
 
-16. **Method is visible**, as one plain sentence on what is compared, then a train → probe → readout → threshold → test flow. Give n and class balance for every set, and say where the threshold was set.
+16. **Method is visible**, as one plain sentence on what is compared, then a train → probe → readout → threshold → test flow. Give n and class balance for every set, and say where the threshold was set. Every results page has this method, in a few lines, even when the main point is elsewhere: what was held fixed (model, layer, probe, how hyperparameters and thresholds were chosen) and what each seed varies.
 17. **Every main chart shows what makes its number mean something:**
     - chance, as a line;
     - at least one trivial baseline that could fake the effect (a length-only classifier, a shuffled-label probe);
@@ -74,3 +74,16 @@ What's visible vs hidden: verification material is the hard part and stays visib
 20. **Why we ran it**: say what was believed before the run and what result would change it, with a link to the run that prompted it. Follow with the prediction, and whether it held.
 21. **Since then**: whenever a later run, finding or decision changes how an experiment reads, add a dated line to it. An experiment page must make sense months later without memory of the time. (Target: generate these from the thread's History lines that cite the experiment.)
 22. **Code, data and records**: list the commit, the script, the config, the rerun command, the results folder, the per-item predictions, the log and the full setup, so getting into the weeds takes one tap.
+
+## Reporting evidence (council of 18 Nov, agreed by the researcher)
+Three builds of one results page were judged against the intent of the design skill rather than its template. These rules are where all three judges agreed the pages fell short.
+
+23. **The opening carries the deciding reason.** State the answer and the one fact most likely to change how the researcher acts on it, even when that fact comes from a check or a secondary metric rather than the headline number (for example, that upweighting doubles false flags on honest answers about harmful topics). If two metrics point different ways, the opening says so. Each claim gets one verdict, stated once, and a later number that pulls the other way is reconciled where it appears.
+24. **Match each conclusion to the comparison that supports it.** Say which uncertainty a range shows: seed variation, the test sample, or the difference between two arms. Overlapping seed ranges don't show that two arms are the same; that needs the uncertainty of the difference. A recommendation names what it trades and why that trade is the right one for the use in mind.
+25. **When the finding is a trade-off across test sets,** show every test set in one view first, in the order the opening cites them, then the per-test-set detail. Charts that sit side by side keep one row order.
+26. **Checks add evidence.** Each check adds something not already visible on the page, and quotes the number that settles it. Start from the strongest alternative explanation of the headline difference, given what was manipulated (for a probe trained on harm-pressure lies: that it learned "harmful topic" rather than "lie"), and test it on every arm the claim covers. Drop a check whose answer a chart already shows, and point to the chart instead. Word each check so a problem shows in its answer.
+27. **Examples are evidence.** Show the actual text, trimmed, with each arm's score and the threshold, so the reader can confirm the example shows what its heading claims. Include at least one example per headline claim and one failure, and say how they were chosen.
+28. **How the data was built:** show where the rows come from as a flow (a diagram), and how the arms differ as a table of arm by component, including each component's share of the loss weight. Counts in a flow add up on sight, with any rows left over named. Keep the source of a row and its label distinct ("harm-pressure lies" vs "harm-pressure rows").
+29. **Anything the result depends on is body text,** not a grey caption. A caption says how to read its figure, and sits at the first figure that needs it.
+30. **Next is ordered by value.** Recommend the first step and say why it comes first. Give each step a cost, and say what result would change the current conclusion.
+
