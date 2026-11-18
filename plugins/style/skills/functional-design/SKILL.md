@@ -76,7 +76,7 @@ When a chart needs something the kit doesn't draw, load the dataviz skill and fo
 
 Every main chart shows the reference that gives its number meaning, on the same scale, because a number alone can't tell me whether it's good. For an experiment that's chance as a dashed line, trivial baselines that could fake the effect, and a skyline when one exists, drawn as hollow grey rows under the heading "References", each labelled with what it is. For other pages it might be last week's average, the free option or the budget. If the reference that matters doesn't exist, say so under the chart.
 
-The title says what's measured against what ("AUROC by test set"), and the caption gives n and what each mark and range means. Sort categories best first.
+The title says what's measured against what ("AUROC by test set"), and the caption gives n and what each mark and range means. Sort categories best first, except where several charts sit side by side: there each compared thing keeps the same row in every chart, with `keepOrder`, so I only learn the order once.
 
 ## Diagrams
 

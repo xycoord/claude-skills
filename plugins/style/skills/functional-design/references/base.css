@@ -1,11 +1,10 @@
 /* Logan's functional-design style. Paste this into the page's <style> and add only what the page needs.
    Put these font links before the style:
    <link rel="preconnect" href="https://fonts.googleapis.com">
-   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap"> */
-
-/* Digits and hyphens come from Figtree; everything else is Albert Sans. */
-@font-face { font-family: "Albert Digits"; font-weight: 400 600; font-display: swap; unicode-range: U+0030-0039, U+002D;
-  src: url(https://fonts.gstatic.com/s/figtree/v9/_Xms-HUzqDCFdgfMm4S9DQ.woff2) format("woff2"); }
+   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap">
+   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&text=0123456789-&display=swap">
+   The second link fetches Figtree with only its digits and hyphen, so listing it first in --f-sans takes just those
+   characters from Figtree and everything else from Albert Sans. */
 
 :root {
   --bg: #ffffff; --ink: #141a22; --ink-2: #3f4855; --muted: #5d6675;
@@ -15,7 +14,7 @@
   /* Colour coding: the dataviz skill's validated categorical order, checked on this white page. Grey is kept for references.
      Slots 3, 4 and 5 are under 3:1 against white, so anything they code also gets a direct label or a value table. */
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
-  --f-sans: "Albert Digits", "Albert Sans", system-ui, sans-serif;
+  --f-sans: "Figtree", "Albert Sans", system-ui, sans-serif;
   --f-mono: "Fira Code", ui-monospace, Menlo, monospace;
   --mgw: 170px; --gut: 36px;                            /* margin column and its gap */
 }
@@ -175,7 +174,9 @@ table.main th { font-size: 14px; }
 
 /* Printing: no sticky header, bookkeeping open, links in ink. base.js opens the disclosure before printing. */
 @media print {
-  :root { --bg: #fff; --ink: #000; }
+  :root, :root:not([data-theme="light"]), :root[data-theme="dark"] {
+    --bg: #fff; --ink: #000; --ink-2: #3f4855; --muted: #5d6675; --line: #dde2e8; --line-2: #c4cbd4; --grid: #eaedf1;
+    --accent: #0f6a78; --good: #1f7a3a; --warn-ink: #9a4a0c; --crit: #c23434; color-scheme: light; }
   .top { position: static; }
   .tabs, #tip, button { display: none; }
   a { color: inherit; }

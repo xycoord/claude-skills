@@ -37,7 +37,7 @@ PROBE = r"""
       if (/[→↗›»]\s*$/.test(text) && el.closest("a, button")) add("arrow on a link or button", el);
       if (emoji.test(text)) add("emoji", el);
       const fg = rgb(s.color), bg = bgOf(el), L1 = lum(fg), L2 = lum(bg), ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
-      if (ratio < (size >= 24 ? 3 : 4.5)) add("text contrast below 4.5:1", el, `${describe(el)} (${ratio.toFixed(2)}:1)`);
+      if (ratio < (size >= 24 ? 3 : 4.5)) add("low text contrast (under 4.5:1, or 3:1 at 24px and up)", el, `${describe(el)} (${ratio.toFixed(2)}:1)`);
     }
     if (s.boxShadow !== "none" && !control(el)) add("shadows", el);
     if (/gradient/.test(s.backgroundImage)) add("gradients", el);
@@ -91,6 +91,8 @@ def main():
             p = b.new_context(**kw).new_page()
             p.on("pageerror", lambda e, tag=tag: errors.append(f"{tag}: {e}"))
             p.goto(url); p.wait_for_load_state("networkidle"); p.wait_for_timeout(400)
+            p.evaluate("document.querySelectorAll('details').forEach(d => d.open = true)")  # check what disclosures hide too
+            p.wait_for_timeout(200)
             for k, v in p.evaluate(PROBE).items():
                 fails.setdefault(k, {}).setdefault(tag, v)
             if tag == "phone":

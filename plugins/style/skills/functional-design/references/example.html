@@ -6,6 +6,7 @@
 <title>Probe transfer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&text=0123456789-&display=swap">
 <link rel="stylesheet" href="base.css">
 <!-- In a real page, paste base.css here inside <style>; the link stands in for it so this example stays short. -->
 </head>
@@ -34,7 +35,7 @@
     <figure>
       <div class="ftitle">AUROC by test set</div>
       <div class="chart-slot" id="chart"></div>
-      <figcaption>Held-out instructed lies n&nbsp;=&nbsp;600, harm-pressure n&nbsp;=&nbsp;1,180, sandbagging n&nbsp;=&nbsp;212. Dot: mean of 3 seeds. Line: lowest to highest seed. Hollow grey rows are baselines scored on the sandbagging set.</figcaption>
+      <figcaption>Held-out instructed lies n&nbsp;=&nbsp;600, harm-pressure n&nbsp;=&nbsp;1,180, sandbagging n&nbsp;=&nbsp;212. Dot: mean of 3 seeds. Line: lowest to highest seed. Hollow grey rows are references scored on the sandbagging set.</figcaption>
     </figure>
     <p class="small" style="margin-top:10px"><span class="warn">No skyline yet.</span> No probe has been trained on sandbagging, so the best reachable score on this set is unknown.</p>
   </div></section>
@@ -95,53 +96,14 @@
   </div></div>
 </main>
 <footer class="wrap">Updated 17 Nov 14:02 from <span class="id">ai-research@3f9c2e1</span>.</footer>
-<!-- In a real page, paste base.js here inside <script>; it remembers the disclosure and shows chart values on hover, tap and focus. -->
+<!-- In a real page, paste base.js and charts.js here inside <script>. -->
 <script src="base.js"></script>
+<script src="charts.js"></script>
 <script>
-// A horizontal dot-and-range chart, drawn at the container's real width so text stays at its set size.
-// Rows: the compared conditions (filled, in their series colour), then baselines (hollow, grey). Chance is a dashed line.
-const DATA = {
-  rows: [
-    { label: "Instructed (held-out)", v: 0.93, lo: 0.92, hi: 0.94 },
-    { label: "Harm-pressure", v: 0.84, lo: 0.82, hi: 0.86 },
-    { label: "Sandbagging", v: 0.54, lo: 0.50, hi: 0.58 },
-  ],
-  base: [
-    { label: "Length only, sandbagging", v: 0.57, lo: 0.57, hi: 0.57 },
-    { label: "Shuffled labels, sandbagging", v: 0.50, lo: 0.47, hi: 0.53 },
-  ],
-  chance: 0.5, from: 0.4, metric: "AUROC",
-};
-const f2 = v => v.toFixed(2), esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-function dotChart(D, slotW) {
-  const W = Math.min(slotW, 600), narrow = W < 460, L = narrow ? 120 : 196, R = narrow ? 52 : 116, rowH = narrow ? 38 : 30, top = 26;
-  const x = v => L + (W - L - R) * (v - D.from) / (1 - D.from);
-  let y = top, s = "";
-  const row = (d, ref) => {
-    const cy = y + rowH / 2, c = ref ? "var(--muted)" : "var(--s1)";
-    const words = d.label.split(" "), two = narrow && d.label.length > 14 && words.length > 1, cut = Math.ceil(words.length / 2);
-    const lines = two ? [words.slice(0, cut).join(" "), words.slice(cut).join(" ")] : [d.label];
-    s += `<text class="${ref ? "ref-lab" : "lab"}" x="0" y="${cy + 4 - (lines.length - 1) * 7}" font-size="13">${lines.map((t, k) => `<tspan x="0" dy="${k ? 14 : 0}">${esc(t)}</tspan>`).join("")}</text>`;
-    if (d.hi - d.lo > 0.03 || !ref) s += `<path d="M${x(d.lo)} ${cy}H${x(d.hi)}M${x(d.lo)} ${cy - 5}v10M${x(d.hi)} ${cy - 5}v10" stroke="${c}" stroke-width="2" fill="none"/>`;
-    const tipText = `${esc(d.label)}: ${f2(d.v)}${d.hi > d.lo ? ` (seeds ${f2(d.lo)}–${f2(d.hi)})` : ""}`;
-    s += `<circle cx="${x(d.v)}" cy="${cy}" r="4.5" fill="${ref ? "var(--bg)" : c}" stroke="${c}" stroke-width="2"/>`;
-    s += `<circle cx="${x(d.v)}" cy="${cy}" r="16" fill="transparent" tabindex="0" data-tip="${tipText}"/>`;  // a bigger target for taps and focus
-    s += `<text class="${ref ? "" : "val"}" x="${W - R + 12}" y="${cy + 4}" font-size="13">${f2(d.v)}${narrow || d.hi === d.lo ? "" : `<tspan class="rng" dx="8">${f2(d.lo)}–${f2(d.hi)}</tspan>`}</text>`;
-    y += rowH;
-  };
-  [...D.rows].sort((a, b) => b.v - a.v).forEach(d => row(d, false));
-  y += 8; s += `<text x="0" y="${y + 14}" font-size="12" font-weight="600">Baselines</text>`; y += 22;
-  D.base.forEach(d => row(d, true));
-  const H = y + 22;
-  let g = "";
-  for (let t = D.from; t <= 1.0001; t += 0.1) { const tx = x(t); g += `<line class="grid" x1="${tx}" x2="${tx}" y1="${top - 4}" y2="${H - 22}"/>`; if (Math.round(t * 10) % 2 === 0) g += `<text x="${tx}" y="${H - 6}" text-anchor="middle" font-size="12">${t.toFixed(1)}</text>`; }
-  g += `<line class="ref" x1="${x(D.chance)}" x2="${x(D.chance)}" y1="${top - 2}" y2="${H - 22}"/><text class="ref-lab" x="${x(D.chance)}" y="${top - 10}" text-anchor="middle" font-size="12">chance ${f2(D.chance)}</text>`;
-  g += `<text x="${W - R}" y="${H + 10}" text-anchor="end" font-size="12">${D.metric}</text>`;
-  return `<svg class="chart" width="${W}" height="${H + 22}" viewBox="0 -8 ${W} ${H + 22}" role="img" aria-label="${D.metric} by test set">${g}${s}</svg>`;
-}
-const slot = document.getElementById("chart"), draw = () => slot.innerHTML = dotChart(DATA, slot.clientWidth);
-draw(); addEventListener("resize", draw); document.fonts && document.fonts.ready.then(draw);
-
+// The result chart, drawn by charts.js: the compared conditions in their series colour, baselines hollow and grey.
+dotChart(document.getElementById("chart"), { metric: "AUROC", from: 0.4, to: 1, lines: [{ v: 0.5, label: "chance" }],
+  rows: [{ label: "Instructed (held-out)", v: 0.93, lo: 0.92, hi: 0.94 }, { label: "Harm-pressure", v: 0.84, lo: 0.82, hi: 0.86 }, { label: "Sandbagging", v: 0.54, lo: 0.50, hi: 0.58 }],
+  refs: [{ label: "Length only, sandbagging", v: 0.57 }, { label: "Shuffled labels, sandbagging", v: 0.50, lo: 0.47, hi: 0.53 }] });
 </script>
 </body>
 </html>

@@ -8,9 +8,11 @@
   try { open = localStorage.getItem(KEY) === "1"; } catch (e) {}
   document.querySelectorAll("details[data-remember]").forEach(d => {
     d.open = open;
-    d.addEventListener("toggle", () => { try { localStorage.setItem(KEY, d.open ? "1" : "0"); } catch (e) {} });
+    d.addEventListener("toggle", () => { if (printing) return; try { localStorage.setItem(KEY, d.open ? "1" : "0"); } catch (e) {} });
   });
-  addEventListener("beforeprint", () => document.querySelectorAll("details[data-remember]").forEach(d => d.open = true));
+  let printing = false;
+  addEventListener("beforeprint", () => { printing = true; document.querySelectorAll("details[data-remember]").forEach(d => { d.dataset.was = d.open ? "1" : "0"; d.open = true; }); });
+  addEventListener("afterprint", () => { document.querySelectorAll("details[data-remember]").forEach(d => { d.open = d.dataset.was === "1"; }); setTimeout(() => printing = false); });
 })();
 
 // Exact values on hover, tap or keyboard focus, for any element with a data-tip attribute.

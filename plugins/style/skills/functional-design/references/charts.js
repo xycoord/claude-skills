@@ -4,7 +4,7 @@
 // that base.js shows on hover, tap or focus. Colour: c: 1–8 is a series slot (var(--s1)…), and
 // c: "crit" / "warn" / "good" is a status. Reference rows and lines are always grey.
 //
-//   dotChart(el, { metric, from, to, rows, refs, lines, fmt })        a few values with their ranges
+//   dotChart(el, { metric, from, to, rows, refs, lines, fmt, keepOrder }) a few values with their ranges
 //   lineChart(el, { metric, xLabel, x, series, lines, from, to, fmt }) trends over time, layer, …
 //   barChart(el, { metric, cats, parts, lines, fmt })                 totals and what they're made of
 //   distChart(el, { metric, bins, upper, lower, threshold })          a score distribution per class
@@ -16,20 +16,23 @@ const FD = (() => {
   const wrap = (s, px, max) => { if (measure(s, px) <= max || !s.includes(" ")) return [s]; const w = s.split(" "); let a = w.shift(); while (w.length && measure(a + " " + w[0], px) <= max) a += " " + w.shift(); return [a, w.join(" ")]; };
   const text = (x, y, s, cls = "", extra = "") => `<text class="${cls}" x="${x}" y="${y}" font-size="13"${extra}>${esc(s)}</text>`;
   const svg = (W, H, label, body, top = 0) => `<svg class="chart" width="${W}" height="${H}" viewBox="0 ${top} ${W} ${H}" role="img" aria-label="${esc(label)}">${body}</svg>`;
-  const ticks = (a, b, n = 5) => { const raw = (b - a) / n, mag = 10 ** Math.floor(Math.log10(raw)), step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw); const out = []; for (let t = Math.ceil(a / step) * step; t <= b + step * 1e-6; t += step) out.push(+t.toFixed(10)); return out; };
+  const ticks = (a, b, n = 5) => { if (!(b > a)) return [a]; const raw = (b - a) / n, mag = 10 ** Math.floor(Math.log10(raw)), step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw); const out = []; for (let t = Math.ceil(a / step) * step; t <= b + step * 1e-6; t += step) out.push(+t.toFixed(10)); return out; };
   const hit = (x, y, tip, r = 14) => `<circle cx="${x}" cy="${y}" r="${r}" fill="transparent" tabindex="0" data-tip="${esc(tip)}"/>`;
   const draw = (el, fn) => { const go = () => { const w = Math.floor(el.clientWidth); if (w && el.dataset.w != w) { el.dataset.w = w; el.innerHTML = fn(Math.max(260, w)); } }; go(); addEventListener("resize", go); document.fonts && document.fonts.ready.then(() => { delete el.dataset.w; go(); }); };
   return { esc, col, measure, wrap, text, svg, ticks, hit, draw };
 })();
 
 // A few values with their ranges: dot = estimate, line = its range (say what the range is in the caption).
+// Rows are sorted best first, unless keepOrder is set: use it when several charts sit side by side, so each
+// compared thing stays in the same row of every chart.
 // rows: [{ label, v, lo, hi, c }], refs: the same shape, drawn hollow and grey under a "References" heading,
 // each labelled with what it is ("Skyline: probe trained on this set", "Shuffled labels"), lines: [{ v, label }] dashed vertical references such as chance.
 function dotChart(el, o) {
   const f = o.fmt || (v => v.toFixed(2));
   FD.draw(el, slotW => {
     const W = Math.min(slotW, 680), narrow = W < 460, L = narrow ? 120 : 200, R = narrow ? 52 : 120, rowH = narrow ? 38 : 30, top = 26;
-    const all = [...o.rows, ...(o.refs || [])], lo = o.from ?? Math.min(...all.map(d => d.lo ?? d.v), ...(o.lines || []).map(l => l.v)), hi = o.to ?? Math.max(...all.map(d => d.hi ?? d.v));
+    const all = [...o.rows, ...(o.refs || [])], lo = o.from ?? Math.min(...all.map(d => d.lo ?? d.v), ...(o.lines || []).map(l => l.v));
+    let hi = o.to ?? Math.max(...all.map(d => d.hi ?? d.v)); if (!(hi > lo)) hi = lo + 1;
     const x = v => L + (W - L - R) * (v - lo) / (hi - lo);
     let y = top, s = "";
     const row = (d, ref) => {
@@ -41,7 +44,7 @@ function dotChart(el, o) {
       s += `<text class="${ref ? "" : "val"}" x="${W - R + 12}" y="${cy + 4}" font-size="13">${f(d.v)}${narrow || d.lo === undefined || d.hi === d.lo ? "" : `<tspan class="rng" dx="8">${f(d.lo)}–${f(d.hi)}</tspan>`}</text>`;
       y += rowH;
     };
-    [...o.rows].sort((a, b) => (o.lowerIsBetter ? a.v - b.v : b.v - a.v)).forEach(d => row(d, false));
+    (o.keepOrder ? o.rows : [...o.rows].sort((a, b) => (o.lowerIsBetter ? a.v - b.v : b.v - a.v))).forEach(d => row(d, false));
     if (o.refs && o.refs.length) { y += 8; s += `<text x="0" y="${y + 14}" font-size="12" font-weight="600">${FD.esc(o.refsLabel || "References")}</text>`; y += 22; o.refs.forEach(d => row(d, true)); }
     const H = y + 22; let g = "";
     FD.ticks(lo, hi).forEach(t => { g += `<line class="grid" x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 22}"/><text x="${x(t)}" y="${H - 6}" text-anchor="middle" font-size="12">${f(t)}</text>`; });
@@ -58,7 +61,7 @@ function lineChart(el, o) {
   FD.draw(el, slotW => {
     const W = Math.min(slotW, 680), narrow = W < 460, L = 40, R = narrow ? 70 : 120, T = 14, PH = narrow ? 180 : 210, H = T + PH + 44;
     const vals = o.series.flatMap(s => s.ys.filter(v => v != null)).concat((o.lines || []).map(l => l.v));
-    const a = o.from ?? Math.min(...vals), b = o.to ?? Math.max(...vals), xa = o.x[0], xb = o.x[o.x.length - 1];
+    const a = o.from ?? Math.min(...vals), b0 = o.to ?? Math.max(...vals), b = b0 > a ? b0 : a + 1, xa = o.x[0], xb = o.x.length > 1 ? o.x[o.x.length - 1] : xa + 1;
     const X = v => L + (W - L - R) * (v - xa) / (xb - xa), Y = v => T + PH * (1 - (v - a) / (b - a));
     let s = "";
     FD.ticks(a, b, 4).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}"/><text x="${L - 8}" y="${Y(t) + 4}" text-anchor="end" font-size="12">${f(t)}</text>`; });
@@ -87,7 +90,7 @@ function barChart(el, o) {
   FD.draw(el, slotW => {
     const W = Math.min(slotW, 680), narrow = W < 460, L = 44, R = narrow ? 76 : 120, T = 22, PH = 200, H = T + PH + 40;
     const totals = o.cats.map((_, i) => o.parts.reduce((s, p) => s + p.values[i], 0));
-    const b = Math.max(...totals, ...(o.lines || []).map(l => l.v)) * 1.08, Y = v => T + PH * (1 - v / b);
+    const b = (Math.max(...totals, ...(o.lines || []).map(l => l.v)) * 1.08) || 1, Y = v => T + PH * (1 - v / b);
     const band = (W - L - R) / o.cats.length, bw = Math.min(40, band * 0.6);
     let s = "";
     FD.ticks(0, b, 4).forEach(t => { s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}"/><text x="${L - 8}" y="${Y(t) + 4}" text-anchor="end" font-size="12">${f(t)}</text>`; });
