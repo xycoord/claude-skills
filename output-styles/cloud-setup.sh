@@ -1,6 +1,7 @@
 #!/bin/bash
 # Installs the "Clear" writing style in a Claude Code cloud session and makes it the default output style.
-# Paste this into the setup script of a cloud environment that only you use.
+# Paste this into the setup script of a cloud environment that only you use. It can go before or after
+# other setup lines: it never stops the script, even if the download fails.
 #
 # It downloads the style from this repo's main branch. A cloud environment runs its setup script once
 # and caches the result, rebuilding when the script changes or after about seven days. So a change to
@@ -8,7 +9,6 @@
 # environment.
 #
 # Last forced refresh: 2026-11-18
-set -uo pipefail
 
 url="${CLEAR_STYLE_URL:-https://raw.githubusercontent.com/xycoord/claude-skills/main/output-styles/clear.md}"
 dir="$HOME/.claude/output-styles"
@@ -33,4 +33,3 @@ else
   rm -f "$dir/clear.md.part"
   echo "Couldn't download the Clear style from $url, so sessions will use the default style." >&2
 fi
-exit 0
