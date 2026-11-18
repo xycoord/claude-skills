@@ -14,6 +14,11 @@
       "name": "research",
       "source": "./plugins/research",
       "description": "Running ML research with Claude: compute on Runpod that cleans up after itself, with jobs that report back on the experiment's PR (compute)"
+    },
+    {
+      "name": "style",
+      "source": "./plugins/style",
+      "description": "Logan's default look for pages people work with, such as reports, dashboards, tools and notebooks: design that feels good and doesn't get in the way (functional-design)"
     }
   ]
 }

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Probe transfer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&text=0123456789-&display=swap">
+<link rel="stylesheet" href="base.css">
+<!-- In a real page, paste base.css here inside <style>; the link stands in for it so this example stays short. -->
+</head>
+<body>
+<!-- A sample page in the default style: a research question, its answer, the evidence behind it and what's next.
+     Copy its patterns, not its content. Every number here is made up. -->
+<header class="top"><div class="wrap">
+  <a class="brand" href="#">ai-research notebook</a>
+  <a class="status" href="#">1 experiment running</a>
+  <nav class="tabs" aria-label="Views"><a href="#" aria-current="page">Threads</a><a href="#">Next</a><a href="#">Experiments</a></nav>
+</div></header>
+
+<main class="wrap page">
+  <div class="mg"><div class="ml"></div><div class="mc">
+    <p class="crumb"><a href="#">Threads</a></p>
+    <h1>Does a probe trained on instructed lies catch other kinds of lie?</h1>
+  </div></div>
+
+  <!-- The answer comes first, with its strength and a dated status in the margin. -->
+  <section class="mg"><div class="ml"><span>Moderate</span><span>New 16 Nov</span></div><div class="mc">
+    <p class="lead">A probe trained on instructed lies scores near chance on sandbagging: AUROC 0.54 vs chance 0.50.</p>
+  </div></section>
+
+  <!-- The chart shows what makes the number mean something: chance, and baselines on the same scale. -->
+  <section class="mg"><div class="ml">Result</div><div class="mc wide">
+    <figure>
+      <div class="ftitle">AUROC by test set</div>
+      <div class="chart-slot" id="chart"></div>
+      <figcaption>Held-out instructed lies n&nbsp;=&nbsp;600, harm-pressure n&nbsp;=&nbsp;1,180, sandbagging n&nbsp;=&nbsp;212. Dot: mean of 3 seeds. Line: lowest to highest seed. Hollow grey rows are references scored on the sandbagging set.</figcaption>
+    </figure>
+    <p class="small" style="margin-top:10px"><span class="warn">No skyline yet.</span> No probe has been trained on sandbagging, so the best reachable score on this set is unknown.</p>
+  </div></section>
+
+  <section class="mg"><div class="ml">Other metrics</div><div class="mc wide">
+    <div class="tablewrap"><table>
+      <thead><tr><th>Test set</th><th class="r">AUROC</th><th class="r">Precision</th><th class="r">Recall</th><th class="r">Accuracy</th></tr></thead>
+      <tbody>
+        <tr><td>Instructed (held-out)</td><td class="r">0.93</td><td class="r">0.90</td><td class="r">0.88</td><td class="r">0.89</td></tr>
+        <tr><td class="nw">Harm-pressure</td><td class="r">0.84</td><td class="r">0.80</td><td class="r">0.76</td><td class="r">0.78</td></tr>
+        <tr><td><b>Sandbagging</b></td><td class="r"><b>0.54</b></td><td class="r">0.52</td><td class="r">0.47</td><td class="r">0.53</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small muted" style="margin-top:6px">Precision and recall are for the lie class, at the threshold set on instructed lies.</p>
+  </div></section>
+
+  <section class="mg"><div class="ml">Method</div><div class="mc">
+    <p>The last-token probe, trained only on instructed lies, is scored without retraining on three test sets. Only the test data changes.</p>
+    <ol class="flow" style="margin-top:12px">
+      <li><span class="k">Train</span><span>Instructed lies, train split <span class="muted">n&nbsp;=&nbsp;2,400, 50% lies</span></span></li>
+      <li><span class="k">Probe</span><span>Logistic regression, layer 16, <span class="nw">last-token</span> readout</span></li>
+      <li><span class="k">Test</span><span>Held-out instructed lies, <span class="nw">harm-pressure</span> v2, sandbagging <span class="muted">n&nbsp;=&nbsp;600, 1,180, 212</span></span></li>
+    </ol>
+  </div></section>
+
+  <section class="mg"><div class="ml">Confidence</div><div class="mc">
+    <p>3 seeds agree, and the same probe reaches 0.93 on held-out instructed lies. Moderate, not strong: one model and one small sandbagging set.</p>
+  </div></section>
+
+  <section class="mg"><div class="ml">Caveats</div><div class="mc">
+    <p>The sandbagging set is small (n&nbsp;=&nbsp;212), so its 95% interval is 0.46–0.62.</p>
+  </div></section>
+
+  <!-- A list: each row is one link, and only its title underlines on hover. -->
+  <section class="mg"><div class="ml">Next</div><div class="mc">
+    <ul class="rows">
+      <li><a class="item" href="#"><span class="t">Does a probe trained on a mix of lie types detect sandbagging?</span><p class="a">Retrain on instructed plus harm-pressure lies, then test on sandbagging. <span class="muted nw">30 GPU-min</span></p></a></li>
+      <li><a class="item" href="#"><span class="t">Does the near-chance result hold on a second sandbagging set?</span><p class="a">Find or build a second sandbagging set; none found yet.</p></a></li>
+    </ul>
+  </div></section>
+
+  <section class="mg"><div class="ml">History</div><div class="mc">
+    <ul class="rows log">
+      <li><span class="d">16 Nov</span><a class="item" href="#"><span class="t">Does a probe trained on instructed lies detect sandbagging?</span><p class="a"><b>No.</b> AUROC 0.54 on sandbagging vs 0.93 on held-out instructed lies and 0.84 on harm-pressure lies. 3 seeds.</p></a></li>
+    </ul>
+  </div></section>
+
+  <!-- Bookkeeping goes in one disclosure at the end, which stays open once opened. -->
+  <div class="mg"><div class="ml"></div><div class="mc">
+    <details class="more" data-remember><summary>Code, data and records</summary><div class="dbody">
+      <dl class="kv">
+        <dt>Commit</dt><dd><a class="id" href="#">9d0e4f2</a></dd>
+        <dt>Rerun</dt><dd><code>uv run probes/transfer.py -c configs/E-2026-11-16-transfer.yaml</code></dd>
+        <dt>Results</dt><dd><a class="id" href="#">runs/claude-transfer-1/</a></dd>
+        <dt>Cost</dt><dd>$1.90 on an A40</dd>
+      </dl>
+    </div></details>
+  </div></div>
+</main>
+<footer class="wrap">Updated 17 Nov 14:02 from <span class="id">ai-research@3f9c2e1</span>.</footer>
+<!-- In a real page, paste base.js and charts.js here inside <script>. -->
+<script src="base.js"></script>
+<script src="charts.js"></script>
+<script>
+// The result chart, drawn by charts.js: the compared conditions in their series colour, baselines hollow and grey.
+dotChart(document.getElementById("chart"), { metric: "AUROC", from: 0.4, to: 1, lines: [{ v: 0.5, label: "chance" }],
+  rows: [{ label: "Instructed (held-out)", v: 0.93, lo: 0.92, hi: 0.94 }, { label: "Harm-pressure", v: 0.84, lo: 0.82, hi: 0.86 }, { label: "Sandbagging", v: 0.54, lo: 0.50, hi: 0.58 }],
+  refs: [{ label: "Length only, sandbagging", v: 0.57 }, { label: "Shuffled labels, sandbagging", v: 0.50, lo: 0.47, hi: 0.53 }] });
+</script>
+</body>
+</html>
