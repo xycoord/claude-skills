@@ -35,5 +35,6 @@
 // (to the same scroll position on the page I came from) when there is one, and follows its href when there isn't.
 document.addEventListener("click", e => {
   const a = e.target.closest && e.target.closest("a[data-back]");
-  if (a && history.length > 1 && document.referrer) { e.preventDefault(); history.back(); }
+  let same = false; try { same = new URL(document.referrer).origin === location.origin; } catch (err) {}
+  if (a && same && history.length > 1) { e.preventDefault(); history.back(); }
 });
