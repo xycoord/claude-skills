@@ -40,12 +40,16 @@ has the setup.
 - **Claude Code in the cloud:** paste `output-styles/cloud-setup.sh` into the setup script of a cloud environment that only you use. It downloads the style from `main` when the environment is built, so a change arrives within about a week, or sooner if you change the date in the script. Anthropic documents a setup script writing `~/.claude/CLAUDE.md` for personal preferences, not an output style, but a session tested on 18 Nov 2026 loaded the style this way.
 - **claude.ai chat:** paste the text of `clear.md`, without the header block at the top, into your profile preferences.
 
-## Not yet in a plugin
+## Drafts
 
-The research skills at the top level (`task-discussion`,
-`autonomous-execution`, `proactive-continuation`, `handoff`, `research-*`,
-`plot`) predate the marketplace and aren't installed by it. They're moving
-into the `research` plugin, skill by skill.
+`drafts/` holds material for skills not written yet, and isn't installed by anything.
+`drafts/notebook-writing-rules.md` is the agreed writing and structure rules for the
+research notebook, which will become the `research` plugin's `record` skill.
+
+The older research skills that once sat at the top level of this repo (`task-discussion`,
+`autonomous-execution`, `proactive-continuation`, `handoff`, `plot` and the `research-*`
+set) were retired on 18 Nov 2026 without being installed by the marketplace. They're in
+the history before this change, for reference when writing the `experiment` and `record` skills.
 
 ## Layout
 
