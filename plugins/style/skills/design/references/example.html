@@ -7,17 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap">
 <link rel="stylesheet" href="base.css">
-<style>
-/* Page-specific additions only. */
-.str { color: var(--ink); display: block; }
-.flow li { display: grid; grid-template-columns: 84px minmax(0, 1fr); column-gap: 14px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 15px; }
-.flow li:last-child { border-bottom: 1px solid var(--line); }
-.flow .k { color: var(--muted); }
-.log > li { display: grid; grid-template-columns: 56px minmax(0, 1fr); column-gap: 14px; }
-.log .d { color: var(--muted); font-size: 14px; padding-top: 1px; }
-.warn { color: var(--warn-ink); font-size: 14px; margin-top: 10px; }
-.weeds { margin-top: 40px; }
-</style>
+<!-- In a real page, paste base.css here inside <style>; the link stands in for it so this example stays short. -->
 </head>
 <body>
 <!-- A sample page in the default style: a research question, its answer, the evidence behind it and what's next.
@@ -35,21 +25,33 @@
   </div></div>
 
   <!-- The answer comes first, with its strength and a dated status in the margin. -->
-  <section class="mg sec"><div class="ml"><span class="str">Moderate</span>New 16 Nov</div><div class="mc">
+  <section class="mg"><div class="ml"><span>Moderate</span><span>New 16 Nov</span></div><div class="mc">
     <p class="lead">A probe trained on instructed lies scores near chance on sandbagging: AUROC 0.54 vs chance 0.50.</p>
   </div></section>
 
   <!-- The chart shows what makes the number mean something: chance, and baselines on the same scale. -->
-  <section class="mg sec"><div class="ml">Result</div><div class="mc">
+  <section class="mg"><div class="ml">Result</div><div class="mc wide">
     <figure>
       <div class="ftitle">AUROC by test set</div>
       <div class="chart-slot" id="chart"></div>
-      <figcaption>Sandbagging n&nbsp;=&nbsp;212; the other sets n&nbsp;&gt;&nbsp;1,000. Mean and range of 3 seeds.</figcaption>
+      <figcaption>Held-out instructed lies n&nbsp;=&nbsp;600, harm-pressure n&nbsp;=&nbsp;1,180, sandbagging n&nbsp;=&nbsp;212. Dot: mean of 3 seeds. Line: lowest to highest seed. Hollow grey rows are baselines scored on the sandbagging set.</figcaption>
     </figure>
-    <p class="warn">No skyline yet: no probe has been trained on sandbagging, so the best reachable score on this set is unknown.</p>
+    <p class="small" style="margin-top:10px"><span class="warn">No skyline yet.</span> No probe has been trained on sandbagging, so the best reachable score on this set is unknown.</p>
   </div></section>
 
-  <section class="mg sec"><div class="ml">Method</div><div class="mc">
+  <section class="mg"><div class="ml">Other metrics</div><div class="mc wide">
+    <div class="tablewrap"><table>
+      <thead><tr><th>Test set</th><th class="r">AUROC</th><th class="r">Precision</th><th class="r">Recall</th><th class="r">Accuracy</th></tr></thead>
+      <tbody>
+        <tr><td>Instructed (held-out)</td><td class="r">0.93</td><td class="r">0.90</td><td class="r">0.88</td><td class="r">0.89</td></tr>
+        <tr><td>Harm-pressure</td><td class="r">0.84</td><td class="r">0.80</td><td class="r">0.76</td><td class="r">0.78</td></tr>
+        <tr><td><b>Sandbagging</b></td><td class="r"><b>0.54</b></td><td class="r">0.52</td><td class="r">0.47</td><td class="r">0.53</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small muted" style="margin-top:6px">Precision and recall are for the lie class, at the threshold set on instructed lies.</p>
+  </div></section>
+
+  <section class="mg"><div class="ml">Method</div><div class="mc">
     <p>The last-token probe, trained only on instructed lies, is scored without retraining on three test sets. Only the test data changes.</p>
     <ol class="flow" style="margin-top:12px">
       <li><span class="k">Train</span><span>Instructed lies, train split <span class="muted">n&nbsp;=&nbsp;2,400, 50% lies</span></span></li>
@@ -58,31 +60,31 @@
     </ol>
   </div></section>
 
-  <section class="mg sec"><div class="ml">Confidence</div><div class="mc">
+  <section class="mg"><div class="ml">Confidence</div><div class="mc">
     <p>3 seeds agree, and the same probe reaches 0.93 on held-out instructed lies. Moderate, not strong: one model and one small sandbagging set.</p>
   </div></section>
 
-  <section class="mg sec"><div class="ml">Caveats</div><div class="mc">
+  <section class="mg"><div class="ml">Caveats</div><div class="mc">
     <p>The sandbagging set is small (n&nbsp;=&nbsp;212), so its 95% interval is 0.46–0.62.</p>
   </div></section>
 
   <!-- A list: each row is one link, and only its title underlines on hover. -->
-  <section class="mg sec"><div class="ml">Next</div><div class="mc">
+  <section class="mg"><div class="ml">Next</div><div class="mc">
     <ul class="rows">
-      <li><a class="item" href="#"><span class="t">Does a probe trained on a mix of lie types detect sandbagging?</span><p class="a">Next: retrain on instructed plus harm-pressure lies, then test on sandbagging. <span class="muted nw">30 GPU-min</span></p></a></li>
-      <li><a class="item" href="#"><span class="t">Does the near-chance result hold on a second sandbagging set?</span><p class="a">Next: find or build a second sandbagging set; none found yet.</p></a></li>
+      <li><a class="item" href="#"><span class="t">Does a probe trained on a mix of lie types detect sandbagging?</span><p class="a">Retrain on instructed plus harm-pressure lies, then test on sandbagging. <span class="muted nw">30 GPU-min</span></p></a></li>
+      <li><a class="item" href="#"><span class="t">Does the near-chance result hold on a second sandbagging set?</span><p class="a">Find or build a second sandbagging set; none found yet.</p></a></li>
     </ul>
   </div></section>
 
-  <section class="mg sec"><div class="ml">History</div><div class="mc">
+  <section class="mg"><div class="ml">History</div><div class="mc">
     <ul class="rows log">
-      <li><span class="d num">16 Nov</span><a class="item" href="#"><span class="t">Does a probe trained on instructed lies detect sandbagging?</span><p class="a"><b>No.</b> AUROC 0.54 on sandbagging vs 0.93 on held-out instructed lies and 0.84 on harm-pressure lies. 3 seeds.</p></a></li>
+      <li><span class="d">16 Nov</span><a class="item" href="#"><span class="t">Does a probe trained on instructed lies detect sandbagging?</span><p class="a"><b>No.</b> AUROC 0.54 on sandbagging vs 0.93 on held-out instructed lies and 0.84 on harm-pressure lies. 3 seeds.</p></a></li>
     </ul>
   </div></section>
 
   <!-- Bookkeeping goes in one disclosure at the end, which stays open once opened. -->
-  <div class="mg weeds"><div class="ml"></div><div class="mc">
-    <details class="more" id="weeds"><summary>Code, data and records</summary><div class="dbody">
+  <div class="mg"><div class="ml"></div><div class="mc">
+    <details class="more" data-remember><summary>Code, data and records</summary><div class="dbody">
       <dl class="kv">
         <dt>Commit</dt><dd><a class="id" href="#">9d0e4f2</a></dd>
         <dt>Rerun</dt><dd><code>uv run probes/transfer.py -c configs/E-2026-11-16-transfer.yaml</code></dd>
@@ -93,14 +95,9 @@
   </div></div>
 </main>
 <footer class="wrap">Updated 17 Nov 14:02 from <span class="id">ai-research@3f9c2e1</span>.</footer>
-<div id="tip" hidden></div>
-
+<!-- In a real page, paste base.js here inside <script>; it remembers the disclosure and shows chart values on hover, tap and focus. -->
+<script src="base.js"></script>
 <script>
-// Remember whether the bookkeeping disclosure is open, so it stays open while I'm working in the detail.
-const weeds = document.getElementById("weeds");
-try { weeds.open = localStorage.getItem("weeds") === "1"; } catch (e) {}
-weeds.addEventListener("toggle", () => { try { localStorage.setItem("weeds", weeds.open ? "1" : "0"); } catch (e) {} });
-
 // A horizontal dot-and-range chart, drawn at the container's real width so text stays at its set size.
 // Rows: the compared conditions (filled, in their series colour), then baselines (hollow, grey). Chance is a dashed line.
 const DATA = {
@@ -126,7 +123,9 @@ function dotChart(D, slotW) {
     const lines = two ? [words.slice(0, cut).join(" "), words.slice(cut).join(" ")] : [d.label];
     s += `<text class="${ref ? "ref-lab" : "lab"}" x="0" y="${cy + 4 - (lines.length - 1) * 7}" font-size="13">${lines.map((t, k) => `<tspan x="0" dy="${k ? 14 : 0}">${esc(t)}</tspan>`).join("")}</text>`;
     if (d.hi - d.lo > 0.03 || !ref) s += `<path d="M${x(d.lo)} ${cy}H${x(d.hi)}M${x(d.lo)} ${cy - 5}v10M${x(d.hi)} ${cy - 5}v10" stroke="${c}" stroke-width="2" fill="none"/>`;
-    s += `<circle cx="${x(d.v)}" cy="${cy}" r="4.5" fill="${ref ? "var(--bg)" : c}" stroke="${c}" stroke-width="2" data-tip="${esc(d.label)}: ${f2(d.v)}${d.hi > d.lo ? ` (seeds ${f2(d.lo)}–${f2(d.hi)})` : ""}"/>`;
+    const tipText = `${esc(d.label)}: ${f2(d.v)}${d.hi > d.lo ? ` (seeds ${f2(d.lo)}–${f2(d.hi)})` : ""}`;
+    s += `<circle cx="${x(d.v)}" cy="${cy}" r="4.5" fill="${ref ? "var(--bg)" : c}" stroke="${c}" stroke-width="2"/>`;
+    s += `<circle cx="${x(d.v)}" cy="${cy}" r="16" fill="transparent" tabindex="0" data-tip="${tipText}"/>`;  // a bigger target for taps and focus
     s += `<text class="${ref ? "" : "val"}" x="${W - R + 12}" y="${cy + 4}" font-size="13">${f2(d.v)}${narrow || d.hi === d.lo ? "" : `<tspan class="rng" dx="8">${f2(d.lo)}–${f2(d.hi)}</tspan>`}</text>`;
     y += rowH;
   };
@@ -143,9 +142,6 @@ function dotChart(D, slotW) {
 const slot = document.getElementById("chart"), draw = () => slot.innerHTML = dotChart(DATA, slot.clientWidth);
 draw(); addEventListener("resize", draw); document.fonts && document.fonts.ready.then(draw);
 
-// Exact values on hover or tap.
-const tip = document.getElementById("tip");
-document.addEventListener("pointermove", e => { const el = e.target.closest("[data-tip]"); if (!el) return tip.hidden = true; tip.textContent = el.dataset.tip; tip.hidden = false; tip.style.left = Math.min(innerWidth - tip.offsetWidth - 8, e.clientX + 12) + "px"; tip.style.top = (e.clientY - tip.offsetHeight - 10) + "px"; });
 </script>
 </body>
 </html>

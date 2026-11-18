@@ -1,21 +1,21 @@
-/* Logan's default page style. Copy this into a page's <style> and add only what the page needs.
-   Fonts (put these links before the style):
+/* Logan's default page style. Paste this into the page's <style> and add only what the page needs.
+   Put these font links before the style:
    <link rel="preconnect" href="https://fonts.googleapis.com">
    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap"> */
 
-/* Digits and hyphens come from Figtree, as chosen for the research notebook; everything else is Albert Sans. */
+/* Digits and hyphens come from Figtree; everything else is Albert Sans. */
 @font-face { font-family: "Albert Digits"; font-weight: 400 600; font-display: swap; unicode-range: U+0030-0039, U+002D;
   src: url(https://fonts.gstatic.com/s/figtree/v9/_Xms-HUzqDCFdgfMm4S9DQ.woff2) format("woff2"); }
 
 :root {
   --bg: #ffffff; --ink: #141a22; --ink-2: #3f4855; --muted: #5d6675;
   --line: #dde2e8; --line-2: #c4cbd4; --grid: #eaedf1;
-  --accent: #0f6a78;                                  /* links and the current state, nothing else */
-  --good: #1f7a3a; --warn-ink: #9a4a0c; --crit: #c23434; /* status only, always beside a word */
-  --s1: #2F62A8; --s2: #8A93A0; --s3: #7B61C9;           /* chart series, fixed per entity */
+  --accent: #0f6a78;                                     /* links, the current tab, the one primary button */
+  --good: #1f7a3a; --warn-ink: #9a4a0c; --crit: #c23434;  /* status only, always on a word that says the same */
+  --s1: #2F62A8; --s2: #8A93A0; --s3: #7B61C9;            /* chart series, fixed per entity */
   --f-sans: "Albert Digits", "Albert Sans", system-ui, sans-serif;
   --f-mono: "Fira Code", ui-monospace, Menlo, monospace;
-  --mgw: 170px; --gut: 36px;                           /* margin column and its gap */
+  --mgw: 170px; --gut: 36px;                            /* margin column and its gap */
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #16171a; --ink: #eceff3; --ink-2: #c3cad4; --muted: #8d96a3; --line: #2a2c31; --line-2: #464a52; --grid: #222830;
@@ -24,28 +24,30 @@
   --bg: #16171a; --ink: #eceff3; --ink-2: #c3cad4; --muted: #8d96a3; --line: #2a2c31; --line-2: #464a52; --grid: #222830;
   --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #5B8FD9; --s2: #9AA3AF; --s3: #9C87E6; color-scheme: dark; }
 
-/* Type: one family, five sizes, three weights. */
+/* Type: 24 title, 20 opening answer, 17 headings, 16 body, 15 secondary, 14 labels and captions, 13 footer and table heads. */
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.55 var(--f-sans); -webkit-font-smoothing: antialiased; }
-p, h1, h2, h3, figure, ul, ol, dl, dd, blockquote { margin: 0; padding: 0; }
+p, h1, h2, h3, figure, ul, ol, dl, dd, blockquote, pre { margin: 0; padding: 0; }
 ul, ol { list-style: none; }
 h1 { font-size: 24px; line-height: 1.3; font-weight: 600; letter-spacing: -0.01em; max-width: 36ch; text-wrap: pretty; }
-h2 { font-size: 18px; line-height: 1.4; font-weight: 600; text-wrap: pretty; }
-h3 { font-size: 15px; font-weight: 600; }
+h2 { font-size: 17px; line-height: 1.4; font-weight: 600; text-wrap: pretty; }
 b, strong { font-weight: 600; }
-.lead { font-size: 18px; line-height: 1.5; }          /* the answer or claim that opens a page */
+.lead { font-size: 20px; line-height: 1.45; text-wrap: pretty; }   /* the answer that opens a page */
 .muted { color: var(--muted); }
 .small { font-size: 14px; }
 .num { font-variant-numeric: tabular-nums; }
 .nw { white-space: nowrap; }
 .id, code { font-family: var(--f-mono); font-size: 0.88em; font-variant-ligatures: none; }  /* IDs, hashes, code, commands only */
 .id { white-space: nowrap; }
+pre { font-family: var(--f-mono); font-size: 14px; font-variant-ligatures: none; overflow-x: auto; padding: 10px 0; border-block: 1px solid var(--line); }
+.crit { color: var(--crit); } .warn { color: var(--warn-ink); } .good { color: var(--good); }   /* on the status word only */
 
 /* Links. Text links are accent and underline on hover. A list row is one link (a.item):
    ink-coloured, and hovering anywhere on it underlines only its title (.t). Rows never contain other links. */
 a { color: var(--accent); text-decoration: none; }
 a:hover, a.item:hover .t { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
 a.item { display: block; color: inherit; }
+a.item:hover { text-decoration: none; }
 a.item:hover .t { text-decoration-color: var(--line-2); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
 
@@ -54,70 +56,108 @@ a.item:hover .t { text-decoration-color: var(--line-2); }
 main { padding-block: 36px 64px; }
 footer { padding-block: 0 48px; font-size: 13px; color: var(--muted); }
 
-/* Header: the page's name, one live status, a few tabs. */
+/* Header bar: short name, at most one live status, tabs if the page has sibling views. Leave it out on a standalone page. */
 .top { border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 5; }
-.top .wrap { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 28px; }
-.brand { font-weight: 600; font-size: 17px; color: var(--ink); padding-block: 14px; margin-right: auto; }
+.top .wrap { display: flex; flex-wrap: wrap; align-items: center; column-gap: 28px; }
+.brand { font-weight: 600; font-size: 17px; color: var(--ink); padding-block: 12px; margin-right: auto; }
 .brand:hover { text-decoration: none; }
-.status { font-size: 14px; }
-.tabs { display: flex; gap: 24px; }
-.tabs a { color: var(--ink-2); font-size: 15px; font-weight: 500; padding-block: 14px 13px; border-bottom: 2px solid transparent; }
+.status { font-size: 14px; min-height: 44px; display: inline-flex; align-items: center; }
+.status.crit { color: var(--crit); font-weight: 600; }
+.tabs { display: flex; gap: 24px; align-self: stretch; }
+.tabs a { color: var(--ink-2); font-size: 15px; font-weight: 500; display: flex; align-items: center; min-height: 44px; border-bottom: 2px solid transparent; }
 .tabs a:hover { text-decoration: none; color: var(--ink); }
 .tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
 
-/* The margin grid: a plain-word label on the left (.ml), content on the right (.mc). */
+/* The margin grid: a plain-word label, date or status on the left (.ml), content on the right (.mc). */
 .mg { display: grid; grid-template-columns: var(--mgw) minmax(0, 1fr); column-gap: var(--gut); align-items: baseline; }
 .mg > .ml { font-size: 14px; color: var(--muted); line-height: 1.45; }
+.mg > .ml .crit { font-weight: 600; }
+.mg > .ml > span { display: block; }               /* label, then its date, on separate lines on a desktop */
 .mg > .mc { min-width: 0; max-width: 640px; }
+.mg > .mc.wide { max-width: none; }                 /* tables and charts may use the full content width */
 .page > * + * { margin-top: 28px; }
-.sec p + p { margin-top: 8px; }
+.mc > p + p { margin-top: 8px; }
 .crumb { font-size: 14px; margin-bottom: 10px; }
 .crumb a { color: var(--muted); }
+.contents { font-size: 14px; margin-top: 12px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
 
-/* Lists of things: one row per item, date or status in the margin. */
+/* Lists. One row per item: title, then a short line of detail. All rows in a list are links, or none are. */
 .rows > li + li { margin-top: 18px; }
 .rows .t { font-weight: 500; }
 .rows .a { color: var(--ink-2); font-size: 15px; margin-top: 2px; }
 .rows .dim .t, .rows .dim .a { color: var(--muted); }
+.log > li { display: grid; grid-template-columns: 56px minmax(0, 1fr); column-gap: 14px; }  /* dates beside rows inside a section */
+.log .d { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; padding-top: 1px; }
+.flow li { display: grid; grid-template-columns: 84px minmax(0, 1fr); column-gap: 14px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.flow li:last-child { border-bottom: 1px solid var(--line); }
+.flow .k { color: var(--muted); }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 18px; }
 .kv dt { color: var(--muted); }
 
-/* The one disclosure for bookkeeping, at the end of a page. Remember its open state (see example.html). */
-details.more > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; min-height: 36px; color: var(--ink); font-size: 15px; font-weight: 600; }
+/* The one disclosure for bookkeeping, at the end of a page. base.js remembers whether it's open. */
+details.more { margin-top: 40px; }
+details.more > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; min-height: 44px; color: var(--ink); font-size: 15px; font-weight: 600; }
 details.more > summary::-webkit-details-marker { display: none; }
 details.more > summary::before { content: ""; border-left: 5px solid var(--muted); border-block: 4px solid transparent; transition: transform .15s; }
 details.more[open] > summary::before { transform: rotate(90deg); }
-.dbody { margin-top: 14px; padding-left: 15px; border-left: 1px solid var(--line); display: grid; gap: 20px; font-size: 15px; }
+.dbody { margin-top: 10px; padding-left: 15px; border-left: 1px solid var(--line); display: grid; gap: 20px; font-size: 15px; }
+.dbody h2 { font-size: 15px; margin-bottom: 4px; }
 
-/* Figures and tables */
+/* Forms: label above, 44px input, one primary button at most, errors under the field. */
+.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px 16px; max-width: 640px; }
+label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+input, select, textarea { font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--line-2); border-radius: 6px; min-height: 44px; padding: 8px 12px; width: 100%; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+.err { font-size: 14px; color: var(--crit); }
+button.primary { font: inherit; font-weight: 600; font-size: 15px; color: #fff; background: var(--accent); border: 0; border-radius: 6px; min-height: 44px; padding: 0 18px; cursor: pointer; }
+:root[data-theme="dark"] button.primary { color: var(--bg); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.primary { color: var(--bg); } }
+
+/* Figures, charts and tables */
 figure { display: grid; gap: 6px; }
 .ftitle { font-size: 14px; font-weight: 600; }
-figcaption { font-size: 14px; color: var(--muted); line-height: 1.45; max-width: 600px; }
+figcaption { font-size: 14px; color: var(--muted); line-height: 1.45; max-width: 640px; }
 .chart { display: block; overflow: visible; max-width: 100%; }
 .chart text { font-family: var(--f-sans); fill: var(--muted); font-variant-numeric: tabular-nums; }
-.chart .lab { fill: var(--ink); }
-.chart .val { fill: var(--ink); font-weight: 600; }
+.chart .lab, .chart .val { fill: var(--ink); }
+.chart .val { font-weight: 600; }
 .chart .rng { fill: var(--muted); font-weight: 400; }
 .chart .ref-lab { fill: var(--ink-2); }
 .chart .grid { stroke: var(--grid); }
 .chart .ref { stroke: var(--ink-2); stroke-width: 1.25; stroke-dasharray: 5 4; }
 table { border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
-th, td { text-align: left; padding: 4px 16px 4px 0; border-bottom: 1px solid var(--line); }
+th, td { text-align: left; vertical-align: top; padding: 6px 16px 6px 0; border-bottom: 1px solid var(--line); }
 th { font-weight: 600; color: var(--muted); font-size: 13px; }
 td.r, th.r { text-align: right; }
+table.main { font-size: 16px; width: 100%; }        /* the page's main comparison, at body size in ink */
+table.main th { font-size: 14px; }
 .tablewrap { overflow-x: auto; }
+.tablewrap th:first-child, .tablewrap td:first-child { position: sticky; left: 0; background: var(--bg); }
 #tip { position: fixed; z-index: 20; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 13px; padding: 5px 8px; border-radius: 5px; max-width: 280px; }
 [hidden] { display: none !important; }
 
-/* Below 860px the margin labels fold above their content; below 700px the tabs get their own row. */
+/* Below 860px the margin folds above its content; below 700px tabs get their own row and phrase tables stack. */
 @media (max-width: 860px) {
   .mg { grid-template-columns: minmax(0, 1fr); }
   .mg > .ml:empty { display: none; }
-  .mg > .ml { margin-bottom: 4px; }
+  .mg > .ml { margin-bottom: 4px; display: flex; flex-wrap: wrap; gap: 0 10px; }
 }
 @media (max-width: 700px) {
   .top { position: static; }
-  .brand { padding-block: 12px 0; }
   .tabs { width: 100%; order: 5; }
-  .tabs a { min-height: 44px; display: flex; align-items: center; padding-block: 10px 9px; }
+  table.stack, table.stack tbody, table.stack tr, table.stack td { display: block; width: 100%; }
+  table.stack thead { display: none; }
+  table.stack tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  table.stack td { border: 0; padding: 2px 0; }
+  table.stack td:first-child { font-weight: 600; }
+  table.stack td[data-label]:not(:first-child)::before { content: attr(data-label); display: block; font-size: 13px; color: var(--muted); }
+}
+
+/* Printing: no sticky header, bookkeeping open, links in ink. base.js opens the disclosure before printing. */
+@media print {
+  :root { --bg: #fff; --ink: #000; }
+  .top { position: static; }
+  .tabs, #tip, button { display: none; }
+  a { color: inherit; }
+  figure, table, .mg { break-inside: avoid; }
 }
