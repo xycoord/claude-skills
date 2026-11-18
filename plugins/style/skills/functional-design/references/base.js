@@ -1,4 +1,4 @@
-// Logan's default page scripts. Paste into a <script> at the end of the page body.
+// Logan's functional-design scripts. Paste into a <script> at the end of the page body.
 
 // The bookkeeping disclosure (<details class="more" data-remember>) stays open once opened.
 // One fixed key, so pages on the same site share the choice. Pages still work when storage is blocked.
