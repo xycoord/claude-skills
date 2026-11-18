@@ -44,7 +44,7 @@
       <thead><tr><th>Test set</th><th class="r">AUROC</th><th class="r">Precision</th><th class="r">Recall</th><th class="r">Accuracy</th></tr></thead>
       <tbody>
         <tr><td>Instructed (held-out)</td><td class="r">0.93</td><td class="r">0.90</td><td class="r">0.88</td><td class="r">0.89</td></tr>
-        <tr><td>Harm-pressure</td><td class="r">0.84</td><td class="r">0.80</td><td class="r">0.76</td><td class="r">0.78</td></tr>
+        <tr><td class="nw">Harm-pressure</td><td class="r">0.84</td><td class="r">0.80</td><td class="r">0.76</td><td class="r">0.78</td></tr>
         <tr><td><b>Sandbagging</b></td><td class="r"><b>0.54</b></td><td class="r">0.52</td><td class="r">0.47</td><td class="r">0.53</td></tr>
       </tbody>
     </table></div>
@@ -55,8 +55,8 @@
     <p>The last-token probe, trained only on instructed lies, is scored without retraining on three test sets. Only the test data changes.</p>
     <ol class="flow" style="margin-top:12px">
       <li><span class="k">Train</span><span>Instructed lies, train split <span class="muted">n&nbsp;=&nbsp;2,400, 50% lies</span></span></li>
-      <li><span class="k">Probe</span><span>Logistic regression, layer 16, last-token readout</span></li>
-      <li><span class="k">Test</span><span>Held-out instructed lies, harm-pressure v2, sandbagging <span class="muted">n&nbsp;=&nbsp;600, 1,180, 212</span></span></li>
+      <li><span class="k">Probe</span><span>Logistic regression, layer 16, <span class="nw">last-token</span> readout</span></li>
+      <li><span class="k">Test</span><span>Held-out instructed lies, <span class="nw">harm-pressure</span> v2, sandbagging <span class="muted">n&nbsp;=&nbsp;600, 1,180, 212</span></span></li>
     </ol>
   </div></section>
 
