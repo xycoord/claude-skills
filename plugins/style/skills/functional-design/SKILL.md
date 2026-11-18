@@ -31,7 +31,7 @@ When something needs me, the page opens with it: "Needs you" in the margin in th
 
 ## Layout
 
-A page is one typeset column on a plain white background, with no cards, boxes, shadows or tinted panels. Prose stays under about 640px wide, because longer lines tire the eye, while tables and charts may use the full width. Space does the separating, helped by the occasional 1px rule.
+A page is one typeset column on a plain white background, with no cards, boxes, shadows or tinted panels. Prose stays under about 640px wide, because longer lines tire the eye. That limit is for reading line by line, so it doesn't apply to figures. A diagram, or a chart or table that needs the room, may use the full width of the page, margin column included, with the `bleed` class in `base.css`, while its caption stays at text width. Keep to those two widths rather than giving each figure its own, so the page doesn't end at a different edge every few inches. Space does the separating, helped by the occasional 1px rule.
 
 A margin column on the left labels each section with a plain word (Result, Method, Caveats) and holds its date or status, so I can scan a page by its labels without them interrupting the reading. A section has a margin label or, on a page long enough to need headings, a heading, but not both. Titles say something specific, such as "Which layer gives the best probe?" rather than "Results", so I can tell I'm in the right place.
 

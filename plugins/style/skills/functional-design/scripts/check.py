@@ -66,7 +66,7 @@ TOUCH = r"""
     if (!r.width || s.visibility === "hidden") continue;
     if (el.matches("a") && s.display === "inline" && el.closest("p, li, dd, td, figcaption") && !el.closest("nav")) continue;  // links in sentences are exempt
     if (el.closest("svg")) continue;  // chart marks carry their own larger hit areas
-    if (false && r.height < 43.5) {  // tap targets: off, because Logan reads these pages on a laptop const t = `<${el.tagName.toLowerCase()}> ${(el.innerText || el.value || "").trim().slice(0, 40)} (${Math.round(r.height)}px)`; if (!seen.has(t)) { seen.add(t); out.push(["tap targets under 44px", t]); } }
+    if (false && r.height < 43.5) { /* tap targets: off, because Logan reads these pages on a laptop */ const t = `<${el.tagName.toLowerCase()}> ${(el.innerText || el.value || "").trim().slice(0, 40)} (${Math.round(r.height)}px)`; if (!seen.has(t)) { seen.add(t); out.push(["tap targets under 44px", t]); } }
   }
   return out;
 }

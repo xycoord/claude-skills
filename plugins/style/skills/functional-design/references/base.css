@@ -80,6 +80,11 @@ footer { padding-block: 0 48px; font-size: 13px; color: var(--muted); }
 .mg > .ml > span { display: block; }               /* label, then its date, on separate lines on a desktop */
 .mg > .mc { min-width: 0; max-width: 640px; }
 .mg > .mc.wide { max-width: none; }                 /* tables and charts may use the full content width */
+/* A figure that needs the room spans the whole page width, margin column included. Its caption stays at text width.
+   <figure class="bleed"><div class="ftitle">…</div>…<figcaption>…</figcaption></figure>, placed between sections. */
+.bleed { max-width: none; }
+.bleed figcaption, .bleed .ftitle { max-width: 640px; margin-left: calc(var(--mgw) + var(--gut)); }
+@media (max-width: 860px) { .bleed figcaption, .bleed .ftitle { margin-left: 0; } }
 .page > * + * { margin-top: 28px; }
 .mc > p + p { margin-top: 8px; }
 .crumb { font-size: 14px; margin-bottom: 10px; }
