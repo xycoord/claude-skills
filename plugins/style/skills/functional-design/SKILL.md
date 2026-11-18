@@ -80,7 +80,7 @@ The title says what's measured against what ("AUROC by test set"), and the capti
 
 ## Diagrams
 
-A diagram shows flow, and a table makes comparisons, so a page can need both for the same things. How three training sets are built from shared sources is a diagram, and what each set contains side by side is a table. Put the key numbers in the diagram's boxes as well, so it supports a rough comparison on its own. A plain sequence of steps reads better as a list, like the method flow in `example.html`, so a diagram earns its place when the structure branches, joins or loops. Then the boxes are allowed, because in a diagram they carry the structure. They use 1px strokes in the rule grey, with no fills or coloured edges. A box for a colour-coded thing gets the same colour key as everywhere else, a small dot before its name from the `sw` class, because coloured stripes down the side of a box are another mark of a generated page. Labels are plain words in the page font at 13px, with a muted second line for detail, and arrows are simple. `base.css` styles an `svg.diagram` this way, and `charts.html` has an example. Give the drawing its natural size, so its text doesn't shrink on a phone, and let it scroll sideways there inside a `.tablewrap`. For the mechanics of drawing one, load the artifact-diagramming skill.
+A diagram shows flow, and a table makes comparisons, so a page can need both for the same things. How three training sets are built from shared sources is a diagram, and what each set contains side by side is a table. Put the key numbers in the diagram's boxes as well, so it supports a rough comparison on its own. A plain sequence of steps reads better as a list, like the method flow in `example.html`, so a diagram earns its place when the structure branches, joins or loops. Then the boxes are allowed, because in a diagram they carry the structure. They use 1px strokes in the rule grey, with no fills or coloured edges. A box for a colour-coded thing gets the same colour key as everywhere else, a small dot before its name from the `sw` class, because coloured stripes down the side of a box are another mark of a generated page. Labels are plain words in the page font at 13px, with a muted second line for detail, and arrows are simple. `base.css` styles an `svg.diagram` this way, and `charts.html` has an example. Give the drawing its natural size, so its text stays at 13px, inside a `.tablewrap` so a narrow window can scroll it. For the mechanics of drawing one, load the artifact-diagramming skill.
 
 ## Words
 
@@ -88,12 +88,14 @@ The words on a page follow my Clear writing style. When you're running as a suba
 
 ## Before calling it done
 
-Run the check script, which tests the rules a program can test in a headless browser at desktop and phone widths, and fix every failure:
+I read these pages on a laptop and almost never on a phone, so design for the desktop. A page should still fit a phone's width without breaking, and the kit handles that, but don't spend effort on phone-specific layouts.
+
+Run the check script, which tests the rules a program can test in a headless browser, and fix every failure:
 
 ```bash
 uv run --with playwright python <this skill>/scripts/check.py page.html --shots /tmp/shots
 ```
 
-Then look at the screenshots it saves, at 1280px in light and dark and at 390px as a phone, because the script can't judge how a page looks. Check that hover, tap, focus and the disclosure work.
+Then look at the screenshots it saves, at 1280px in light and dark, because the script can't judge how a page looks. Glance at the phone one only to see that nothing is broken. Check that hover, focus and the disclosure work.
 
 When I correct the look of a page, add the correction to this skill with its reason, and add a check to the script if a program could catch it.

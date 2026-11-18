@@ -2,8 +2,8 @@
 
     uv run --with playwright python check.py PAGE.html [--shots DIR]
 
-Loads the page in headless Chromium at 1280px (light and dark) and as a 390px touch phone,
-and prints every failure with a few examples. Exits 1 if anything fails. With --shots, it also
+Loads the page in headless Chromium at 1280px (light and dark) and at 390px, and prints every
+failure with a few examples. The phone run only checks that the page doesn't break. Exits 1 if anything fails. With --shots, it also
 saves full-page screenshots for you to look at, which this script can't do for you.
 If Chromium is missing, run: uv run --with playwright playwright install chromium
 """
@@ -66,7 +66,7 @@ TOUCH = r"""
     if (!r.width || s.visibility === "hidden") continue;
     if (el.matches("a") && s.display === "inline" && el.closest("p, li, dd, td, figcaption") && !el.closest("nav")) continue;  // links in sentences are exempt
     if (el.closest("svg")) continue;  // chart marks carry their own larger hit areas
-    if (r.height < 43.5) { const t = `<${el.tagName.toLowerCase()}> ${(el.innerText || el.value || "").trim().slice(0, 40)} (${Math.round(r.height)}px)`; if (!seen.has(t)) { seen.add(t); out.push(["tap targets under 44px", t]); } }
+    if (false && r.height < 43.5) {  // tap targets: off, because Logan reads these pages on a laptop const t = `<${el.tagName.toLowerCase()}> ${(el.innerText || el.value || "").trim().slice(0, 40)} (${Math.round(r.height)}px)`; if (!seen.has(t)) { seen.add(t); out.push(["tap targets under 44px", t]); } }
   }
   return out;
 }
