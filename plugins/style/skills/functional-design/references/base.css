@@ -42,6 +42,9 @@ b, strong { font-weight: 600; }
 .id, code { font-family: var(--f-mono); font-size: max(13px, 0.88em); font-variant-ligatures: none; }  /* IDs, hashes, code, commands only */
 .id { white-space: nowrap; }
 pre { font-family: var(--f-mono); font-size: 14px; font-variant-ligatures: none; overflow-x: auto; padding: 10px 0; border-block: 1px solid var(--line); }
+/* A colour key: a small dot before the name of a colour-coded thing, in tables, lists and diagram labels alike.
+   <span class="sw" style="--c: var(--s2)">Mixed</span> */
+.sw::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--c, var(--s1)); margin-right: 7px; vertical-align: 0.05em; }
 .crit { color: var(--crit); } .warn { color: var(--warn-ink); } .good { color: var(--good); }   /* on the status word only */
 
 /* Links. Text links are accent and underline on hover. A list row is one link (a.item):

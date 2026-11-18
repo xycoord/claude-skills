@@ -19,6 +19,8 @@ Paste `references/base.css` and `references/base.js` into the page, and `referen
 
 Each page leads with what I came for. A results page opens with the result, a status page with whether anything needs me, and a tool with the thing I came to do. Everything after that helps me understand it, check it or act on it.
 
+A results page keeps the same order every time, so I know where to look: the answer, the result chart, what was compared and how the data was built, the method, the checks, examples, confidence and caveats, and what to try next. A brief that lists these in another order is telling you what to include, not where to put it. A breadcrumb belongs only on a page that is part of a site with a home to go back to.
+
 Bookkeeping is whatever the page's question isn't about, and it goes in one disclosure at the end, called something plain like "Code, data and records". On a results page that means IDs, costs, run names and raw configuration, but on a spending page costs are the subject and stay visible. The disclosure stays open once opened, so it's there on every page while I'm working in the detail.
 
 What lets me check a result or a recommendation stays visible, because checking is the hard part of my work. For an experiment that's the method, the comparison that gives a number its meaning, sanity checks and real examples. For a recommendation it's the assumptions, prices with their source and date, and what would change the answer.
@@ -52,13 +54,13 @@ Albert Sans is for all text, with its digits taken from Figtree. Fira Code is on
 
 The palette is white, two inks, a muted grey for labels, two greys for rules, and one accent, a deep teal. The accent marks links, the current tab and the one primary button, so teal always means "you can act on this". Status colours for good, warning and critical are only for status, always on a word that says the same thing, so the meaning survives for colour-blind readers and in print. Colour the word rather than the sentence.
 
-Colour coding is where colour is spent. When colour tells things apart, such as the models being compared, the series in a chart or the categories in a list, it can use as many distinct colours as the content needs, because the plain page leaves room for them. They come from the kit's eight series tokens, in order. Three of them are pale against white, so whatever they code also gets a direct label or a table of values. A thing keeps its colour everywhere it appears, in charts, keys and tables alike, so I learn it once. Something that is itself a status, such as money wasted on a pod left running, takes that status colour. Colour that codes nothing is decoration, so leave it out.
+Colour coding is where colour is spent. When colour tells things apart, such as the models being compared, the series in a chart or the categories in a list, it can use as many distinct colours as the content needs, because the plain page leaves room for them. They come from the kit's eight series tokens, in order. Three of them are pale against white, so whatever they code also gets a direct label or a table of values. A thing keeps its colour everywhere it appears, in charts, tables and diagrams alike, so I learn it once. Outside a chart, its colour shows as a small dot before its name, from the `sw` class in `base.css`. Something that is itself a status, such as money wasted on a pod left running, takes that status colour. Colour that codes nothing is decoration, so leave it out.
 
 ## Lists and actions
 
 Each list item is one link: the whole row is clickable, and hovering anywhere on it underlines only its title. A row never holds a second link, because two targets in a row make taps ambiguous, and a list is all links or none, so I can tell which rows open something.
 
-A one-word verdict that answers a row's question may open its sentence in bold, as in "**No.** AUROC 0.54 on sandbagging". A label never does, so don't start sentences with "Next:" or "Cost:".
+A one-word verdict that answers a row's question may open its sentence in bold, as in "**No.** AUROC 0.54 on sandbagging". It stays in ink when the answer is reassuring, and takes the warning or critical colour only when the check found a problem, so colour in a list of checks always means "look here". A label never does, so don't start sentences with "Next:" or "Cost:".
 
 A page has at most one button-styled action. Every other action is a link, which keeps the one button meaningful. Inputs update the page as I type, unless the action sends something somewhere.
 
@@ -70,13 +72,13 @@ Draw charts with `references/charts.js`, which `references/charts.html` shows in
 
 When a chart needs something the kit doesn't draw, load the dataviz skill and follow its method. This skill supplies the settings that method asks a design system for: the series colours in `base.css`, which are its own validated order, the status colours, and white and near-black as the two backgrounds. Its rules then apply as written, such as one axis per chart and colour that follows the thing rather than its rank.
 
-Every main chart shows the reference that gives its number meaning, on the same scale, because a number alone can't tell me whether it's good. For an experiment that's chance as a dashed line, trivial baselines that could fake the effect, and a skyline when one exists, drawn as hollow grey rows. For other pages it might be last week's average, the free option or the budget. If the reference that matters doesn't exist, say so under the chart.
+Every main chart shows the reference that gives its number meaning, on the same scale, because a number alone can't tell me whether it's good. For an experiment that's chance as a dashed line, trivial baselines that could fake the effect, and a skyline when one exists, drawn as hollow grey rows under the heading "References", each labelled with what it is. For other pages it might be last week's average, the free option or the budget. If the reference that matters doesn't exist, say so under the chart.
 
 The title says what's measured against what ("AUROC by test set"), and the caption gives n and what each mark and range means. Sort categories best first.
 
 ## Diagrams
 
-Before drawing a diagram, check whether a list would do. A sequence of steps reads better as a list, like the method flow in `example.html`, so a diagram earns its place only when the structure branches, joins or loops. Then the boxes are allowed, because in a diagram they carry the structure. They use 1px strokes in the rule grey and take a fill only when the fill codes something. Labels are plain words in the page font at 13px, with a muted second line for detail, and arrows are simple. `base.css` styles an `svg.diagram` this way, and `charts.html` has an example. Give the drawing its natural size, so its text doesn't shrink on a phone, and let it scroll sideways there inside a `.tablewrap`. For the mechanics of drawing one, load the artifact-diagramming skill.
+Before drawing a diagram, check whether a list would do. A sequence of steps reads better as a list, like the method flow in `example.html`, so a diagram earns its place only when the structure branches, joins or loops. Then the boxes are allowed, because in a diagram they carry the structure. They use 1px strokes in the rule grey, with no fills or coloured edges. A box for a colour-coded thing gets the same colour key as everywhere else, a small dot before its name from the `sw` class, because coloured stripes down the side of a box are another mark of a generated page. Labels are plain words in the page font at 13px, with a muted second line for detail, and arrows are simple. `base.css` styles an `svg.diagram` this way, and `charts.html` has an example. Give the drawing its natural size, so its text doesn't shrink on a phone, and let it scroll sideways there inside a `.tablewrap`. For the mechanics of drawing one, load the artifact-diagramming skill.
 
 ## Words
 

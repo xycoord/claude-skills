@@ -23,8 +23,8 @@ const FD = (() => {
 })();
 
 // A few values with their ranges: dot = estimate, line = its range (say what the range is in the caption).
-// rows: [{ label, v, lo, hi, c }], refs: the same shape, drawn hollow and grey under a "label" heading
-// (refsLabel, default "Baselines"), lines: [{ v, label }] dashed vertical references such as chance.
+// rows: [{ label, v, lo, hi, c }], refs: the same shape, drawn hollow and grey under a "References" heading,
+// each labelled with what it is ("Skyline: probe trained on this set", "Shuffled labels"), lines: [{ v, label }] dashed vertical references such as chance.
 function dotChart(el, o) {
   const f = o.fmt || (v => v.toFixed(2));
   FD.draw(el, slotW => {
@@ -42,7 +42,7 @@ function dotChart(el, o) {
       y += rowH;
     };
     [...o.rows].sort((a, b) => (o.lowerIsBetter ? a.v - b.v : b.v - a.v)).forEach(d => row(d, false));
-    if (o.refs && o.refs.length) { y += 8; s += `<text x="0" y="${y + 14}" font-size="12" font-weight="600">${FD.esc(o.refsLabel || "Baselines")}</text>`; y += 22; o.refs.forEach(d => row(d, true)); }
+    if (o.refs && o.refs.length) { y += 8; s += `<text x="0" y="${y + 14}" font-size="12" font-weight="600">${FD.esc(o.refsLabel || "References")}</text>`; y += 22; o.refs.forEach(d => row(d, true)); }
     const H = y + 22; let g = "";
     FD.ticks(lo, hi).forEach(t => { g += `<line class="grid" x1="${x(t)}" x2="${x(t)}" y1="${top - 4}" y2="${H - 22}"/><text x="${x(t)}" y="${H - 6}" text-anchor="middle" font-size="12">${f(t)}</text>`; });
     (o.lines || []).forEach(l => { g += `<line class="ref" x1="${x(l.v)}" x2="${x(l.v)}" y1="${top - 2}" y2="${H - 22}"/><text class="ref-lab" x="${x(l.v)}" y="${top - 10}" text-anchor="middle" font-size="12">${FD.esc(l.label)} ${f(l.v)}</text>`; });
@@ -99,7 +99,7 @@ function barChart(el, o) {
         s += `<rect x="${x}" y="${y1 + 1}" width="${bw}" height="${Math.max(0, y0 - y1 - 2)}" rx="2" fill="${FD.col(p.c)}" tabindex="0" data-tip="${FD.esc(`${cat}, ${p.name}: ${f(v)}`)}"/>`;
       });
       s += `<text class="val" x="${x + bw / 2}" y="${Y(totals[i]) - 6}" text-anchor="middle" font-size="12">${f(totals[i])}</text>`;
-      if (!narrow || i % 2 === 0 || i === o.cats.length - 1) s += `<text x="${x + bw / 2}" y="${T + PH + 18}" text-anchor="middle" font-size="12">${FD.esc(cat)}</text>`;
+      if (!narrow || o.cats.length <= 7 || i % 2 === 0 || i === o.cats.length - 1) s += `<text x="${x + bw / 2}" y="${T + PH + 18}" text-anchor="middle" font-size="12">${FD.esc(cat)}</text>`;
     });
     (o.lines || []).forEach(l => { s += `<line class="ref" x1="${L}" x2="${W - R}" y1="${Y(l.v)}" y2="${Y(l.v)}"/>`; });
     const last = o.cats.length - 1, ends = []; let acc = 0;
