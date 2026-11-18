@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Chart and diagram kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap">
+<!-- In a real page, paste base.css here inside <style>; the link stands in for it. -->
+<link rel="stylesheet" href="base.css">
+</head>
+<body>
+<!-- The four charts in charts.js and one diagram, each in the setting it's for. Every number is made up. -->
+<main class="wrap page">
+  <div class="mg"><div class="ml"></div><div class="mc"><h1>Chart and diagram kit</h1></div></div>
+
+  <section class="mg"><div class="ml">Dots and ranges</div><div class="mc wide">
+    <figure>
+      <div class="ftitle">Macro-F1 by readout</div>
+      <div id="dots"></div>
+      <figcaption>Harm-pressure test set, n&nbsp;=&nbsp;1,180. Dot: mean of 3 seeds. Line: lowest to highest seed. Hollow grey rows are baselines on the same test set.</figcaption>
+    </figure>
+  </div></section>
+
+  <section class="mg"><div class="ml">Lines</div><div class="mc wide">
+    <figure>
+      <div class="ftitle">AUROC by layer</div>
+      <div id="lines"></div>
+      <figcaption>Harm-pressure test set, 1 seed.</figcaption>
+    </figure>
+  </div></section>
+
+  <section class="mg"><div class="ml">Stacked bars</div><div class="mc wide">
+    <figure>
+      <div class="ftitle">GPU spend by day, US dollars</div>
+      <div id="bars"></div>
+      <figcaption>12 to 18 Nov. The dashed line is last week's average day.</figcaption>
+    </figure>
+  </div></section>
+
+  <section class="mg"><div class="ml">Distribution</div><div class="mc wide">
+    <figure>
+      <div class="ftitle">Probe scores by true label</div>
+      <div id="dist"></div>
+      <figcaption>614 honest answers above the axis and 566 lies below. The threshold was set on a separate dev split.</figcaption>
+    </figure>
+  </div></section>
+
+  <!-- A diagram earns its place only when the structure isn't a simple sequence; a sequence is a list (see the method flow in example.html). -->
+  <section class="mg"><div class="ml">Diagram</div><div class="mc wide">
+    <figure>
+      <div class="ftitle">Where a job's results go</div>
+      <div class="tablewrap"><svg class="diagram" width="600" height="150" viewBox="0 0 600 150" role="img" aria-label="A job on a GPU pod writes results to Hugging Face and reports on the PR; the notebook reads from Hugging Face">
+        <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker></defs>
+        <rect class="box" x="1" y="45" width="140" height="56" rx="4"/><text x="71" y="70" text-anchor="middle">Job on a GPU pod</text><text class="note" x="71" y="88" text-anchor="middle">pinned commit</text>
+        <rect class="box" x="230" y="1" width="150" height="56" rx="4"/><text x="305" y="26" text-anchor="middle">Hugging Face</text><text class="note" x="305" y="44" text-anchor="middle">run folder per job</text>
+        <rect class="box" x="230" y="92" width="150" height="56" rx="4"/><text x="305" y="117" text-anchor="middle">Pull request</text><text class="note" x="305" y="135" text-anchor="middle">one report comment</text>
+        <rect class="box" x="458" y="1" width="140" height="56" rx="4"/><text x="528" y="34" text-anchor="middle">Notebook</text>
+        <path class="edge" d="M141 63 C185 63 190 29 229 29" marker-end="url(#arrow)"/>
+        <path class="edge" d="M141 83 C185 83 190 120 229 120" marker-end="url(#arrow)"/>
+        <path class="edge" d="M380 29 H457" marker-end="url(#arrow)"/>
+      </svg></div>
+      <figcaption>The pod deletes itself however the job ends, so nothing is kept on it.</figcaption>
+    </figure>
+  </div></section>
+</main>
+<!-- In a real page, paste base.js and charts.js here inside <script>. -->
+<script src="base.js"></script>
+<script src="charts.js"></script>
+<script>
+dotChart(document.getElementById("dots"), { metric: "Macro-F1", from: 0.4, to: 1, lines: [{ v: 0.5, label: "chance" }],
+  rows: [{ label: "Last-token", v: 0.79, lo: 0.77, hi: 0.81, c: 1 }, { label: "Max-pool", v: 0.66, lo: 0.64, hi: 0.68, c: 2 }, { label: "Mean-pool", v: 0.58, lo: 0.55, hi: 0.61, c: 3 }],
+  refs: [{ label: "Response length only", v: 0.61 }, { label: "Shuffled-label probe", v: 0.50, lo: 0.49, hi: 0.51 }] });
+lineChart(document.getElementById("lines"), { metric: "AUROC", xLabel: "Layer", x: [0, 4, 8, 12, 16, 20, 24, 28, 32], from: 0.4, to: 1, lines: [{ v: 0.5, label: "chance" }],
+  series: [{ name: "Last-token", c: 1, ys: [0.52, 0.61, 0.66, 0.84, 0.87, 0.85, 0.80, 0.76, 0.74] }, { name: "Mean-pool", c: 3, ys: [0.51, 0.57, 0.55, 0.71, 0.74, 0.73, 0.69, 0.66, 0.64] }] });
+barChart(document.getElementById("bars"), { metric: "$", fmt: v => v.toFixed(2), cats: ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"], lines: [{ v: 2.77, label: "Last week" }],
+  parts: [{ name: "Storage", c: 7, values: [0.23, 0.23, 0.23, 0.23, 0.23, 0.23, 0.23] }, { name: "Jobs", c: 1, values: [4.86, 5.03, 0.23, 0, 1.84, 3.80, 1.29] }, { name: "Left running", c: "crit", values: [0, 0, 0, 0, 0, 0.97, 9.94] }] });
+const bins = (n, mu, sd) => Array.from({ length: 20 }, (_, i) => Math.round(n * Math.exp(-(((i + 0.5) / 20 - mu) ** 2) / (2 * sd * sd)) / (sd * Math.sqrt(2 * Math.PI) * 20)));
+distChart(document.getElementById("dist"), { metric: "Probe score", c: 1, threshold: 0.46, upper: { name: "Honest", counts: bins(614, 0.27, 0.15) }, lower: { name: "Lies", counts: bins(566, 0.71, 0.17) } });
+</script>
+</body>
+</html>

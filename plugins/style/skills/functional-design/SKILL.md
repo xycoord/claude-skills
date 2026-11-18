@@ -13,7 +13,7 @@ A project's own design system or brand guide wins over this one. For an Artifact
 
 ## Start from the kit
 
-Paste `references/base.css` and `references/base.js` into the page and add only what it needs. They set the fonts, colours, sizes, margin layout, lists, forms, tables, phone and print behaviour, the remembered disclosure and chart tooltips, and their comments say how to use each part. `references/example.html` is a finished page, so copy its patterns rather than inventing new ones. Starting from the kit is what keeps my pages consistent, because a description of a look drifts in a way a stylesheet doesn't.
+Paste `references/base.css` and `references/base.js` into the page, and `references/charts.js` if it has charts, then add only what the page needs. They set the fonts, colours, sizes, margin layout, lists, forms, tables, diagrams, charts, phone and print behaviour, the remembered disclosure and value tooltips, and their comments say how to use each part. `references/example.html` is a finished page, so copy its patterns rather than inventing new ones. Starting from the kit is what keeps my pages consistent, because a description of a look drifts in a way a stylesheet doesn't.
 
 ## Show what I need first
 
@@ -52,7 +52,7 @@ Albert Sans is for all text, with its digits taken from Figtree. Fira Code is on
 
 The palette is white, two inks, a muted grey for labels, two greys for rules, and one accent, a deep teal. The accent marks links, the current tab and the one primary button, so teal always means "you can act on this". Status colours for good, warning and critical are only for status, always on a word that says the same thing, so the meaning survives for colour-blind readers and in print. Colour the word rather than the sentence.
 
-Colour coding is where colour is spent. When colour tells things apart, such as the models being compared, the series in a chart or the categories in a list, it can use as many distinct colours as the content needs, because the plain page leaves room for them. The first three come from the kit's tokens, and further ones continue in the dataviz skill's categorical order. A thing keeps its colour everywhere it appears, in charts, keys and tables alike, so I learn it once. Something that is itself a status, such as money wasted on a pod left running, takes that status colour. Colour that codes nothing is decoration, so leave it out.
+Colour coding is where colour is spent. When colour tells things apart, such as the models being compared, the series in a chart or the categories in a list, it can use as many distinct colours as the content needs, because the plain page leaves room for them. They come from the kit's eight series tokens, in order. Three of them are pale against white, so whatever they code also gets a direct label or a table of values. A thing keeps its colour everywhere it appears, in charts, keys and tables alike, so I learn it once. Something that is itself a status, such as money wasted on a pod left running, takes that status colour. Colour that codes nothing is decoration, so leave it out.
 
 ## Lists and actions
 
@@ -66,17 +66,21 @@ An empty list says what being empty means ("No jobs since 12 Nov"), and a page o
 
 ## Charts
 
-Load the dataviz skill for chart mechanics. My conventions on top of it are these.
+Draw charts with `references/charts.js`, which `references/charts.html` shows in use. It has the four kinds my pages need: dots with ranges for a few values, lines for a trend over time or another numeric axis, stacked bars for totals and what they're made of, and a two-class score distribution. Each draws at its container's real width so text keeps its size on a phone, labels series directly, and shows exact values on hover, tap or focus. Using it keeps every chart looking like the same hand drew it.
 
-Use dots for a few values, with a line through each when its range matters, a line for a trend, and bars when totals or their parts matter. Sort categories best first, and label series directly when there are four or fewer.
+When a chart needs something the kit doesn't draw, load the dataviz skill and follow its method. This skill supplies the settings that method asks a design system for: the series colours in `base.css`, which are its own validated order, the status colours, and white and near-black as the two backgrounds. Its rules then apply as written, such as one axis per chart and colour that follows the thing rather than its rank.
 
 Every main chart shows the reference that gives its number meaning, on the same scale, because a number alone can't tell me whether it's good. For an experiment that's chance as a dashed line, trivial baselines that could fake the effect, and a skyline when one exists, drawn as hollow grey rows. For other pages it might be last week's average, the free option or the budget. If the reference that matters doesn't exist, say so under the chart.
 
-The title says what's measured against what ("AUROC by test set"), and the caption gives n and what each mark and range means. Draw charts at the container's real width, so text keeps its size on a phone.
+The title says what's measured against what ("AUROC by test set"), and the caption gives n and what each mark and range means. Sort categories best first.
+
+## Diagrams
+
+Before drawing a diagram, check whether a list would do. A sequence of steps reads better as a list, like the method flow in `example.html`, so a diagram earns its place only when the structure branches, joins or loops. Then the boxes are allowed, because in a diagram they carry the structure. They use 1px strokes in the rule grey and take a fill only when the fill codes something. Labels are plain words in the page font at 13px, with a muted second line for detail, and arrows are simple. `base.css` styles an `svg.diagram` this way, and `charts.html` has an example. Give the drawing its natural size, so its text doesn't shrink on a phone, and let it scroll sideways there inside a `.tablewrap`. For the mechanics of drawing one, load the artifact-diagramming skill.
 
 ## Words
 
-The words follow my Clear writing style. Things are called by the names I use, the same thing has the same name everywhere, and anything that says "running", "now" or "yet" carries a date.
+The words on a page follow my Clear writing style. When you're running as a subagent without it, read it from `~/.claude/output-styles/clear.md` before writing the page's text. Things are called by the names I use, the same thing has the same name everywhere, and anything that says "running", "now" or "yet" carries a date.
 
 ## Before calling it done
 

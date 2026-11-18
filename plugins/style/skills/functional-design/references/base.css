@@ -12,17 +12,19 @@
   --line: #dde2e8; --line-2: #c4cbd4; --grid: #eaedf1;
   --accent: #0f6a78;                                     /* links, the current tab, the one primary button */
   --good: #1f7a3a; --warn-ink: #9a4a0c; --crit: #c23434;  /* status only, always on a word that says the same */
-  --s1: #2F62A8; --s2: #7B61C9; --s3: #B07A12;            /* chart series, fixed per entity; grey is kept for references */
+  /* Colour coding: the dataviz skill's validated categorical order, checked on this white page. Grey is kept for references.
+     Slots 3, 4 and 5 are under 3:1 against white, so anything they code also gets a direct label or a value table. */
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
   --f-sans: "Albert Digits", "Albert Sans", system-ui, sans-serif;
   --f-mono: "Fira Code", ui-monospace, Menlo, monospace;
   --mgw: 170px; --gut: 36px;                            /* margin column and its gap */
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #16171a; --ink: #eceff3; --ink-2: #c3cad4; --muted: #8d96a3; --line: #2a2c31; --line-2: #464a52; --grid: #222830;
-  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #5B8FD9; --s2: #9C87E6; --s3: #D9A441; color-scheme: dark; } }
+  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #16171a; --ink: #eceff3; --ink-2: #c3cad4; --muted: #8d96a3; --line: #2a2c31; --line-2: #464a52; --grid: #222830;
-  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #5B8FD9; --s2: #9C87E6; --s3: #D9A441; color-scheme: dark; }
+  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; color-scheme: dark; }
 
 /* Type: 24 title, 20 opening answer, 17 headings, 16 body, 15 secondary, 14 labels and captions, 13 footer and table heads. */
 * { box-sizing: border-box; }
@@ -152,6 +154,16 @@ table.main th { font-size: 14px; }
   table.stack td:first-child { font-weight: 600; }
   table.stack td[data-label]:not(:first-child)::before { content: attr(data-label); display: block; font-size: 13px; color: var(--muted); }
 }
+
+/* Diagrams: shapes carry structure, so boxes are allowed here. 1px rule-grey strokes, fill only when it codes something,
+   plain-word labels in the page font, simple arrows. Use with <svg class="diagram"> and a <marker id="arrow">.
+   Give the svg its natural width and height so text stays 13px, and put it in a .tablewrap so a phone scrolls it sideways. */
+.diagram { display: block; overflow: visible; }
+.diagram text { font-family: var(--f-sans); font-size: 13px; fill: var(--ink); }
+.diagram .note { fill: var(--muted); font-size: 12px; }
+.diagram .box { fill: var(--bg); stroke: var(--line-2); stroke-width: 1; }
+.diagram .edge { fill: none; stroke: var(--muted); stroke-width: 1.25; }
+.diagram marker path { fill: var(--muted); }
 
 /* Printing: no sticky header, bookkeeping open, links in ink. base.js opens the disclosure before printing. */
 @media print {
