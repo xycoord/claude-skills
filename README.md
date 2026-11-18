@@ -27,6 +27,19 @@ The council's GPT judge runs through `plugins/dev/skills/council/scripts/codex_a
 which needs the Codex CLI signed in to a ChatGPT subscription; its docstring
 has the setup.
 
+## Writing style
+
+`output-styles/clear.md` is the "Clear" output style: how Claude should write to Logan in every session. It leads with the point, says less but in full sentences, keeps prose as the default, stays quiet while working, and asks each question once, at the end. It isn't part of a plugin, because it reaches each place a different way:
+
+- **Claude Code on a machine:** link it into place, then set it as the default in `~/.claude/settings.json` with `"outputStyle": "Clear"`. Local sessions then follow whatever this checkout holds.
+
+  ```bash
+  mkdir -p ~/.claude/output-styles && ln -sf "$PWD/output-styles/clear.md" ~/.claude/output-styles/clear.md
+  ```
+
+- **Claude Code in the cloud:** paste `output-styles/cloud-setup.sh` into the setup script of a cloud environment that only you use. It downloads the style from `main` when the environment is built, so a change arrives within about a week, or sooner if you change the date in the script. Anthropic documents a setup script writing `~/.claude/CLAUDE.md` for personal preferences, not an output style, but a session tested on 18 Nov 2026 loaded the style this way.
+- **claude.ai chat:** paste the text of `clear.md`, without the header block at the top, into your profile preferences.
+
 ## Not yet in a plugin
 
 The research skills at the top level (`task-discussion`,
