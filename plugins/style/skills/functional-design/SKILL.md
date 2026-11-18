@@ -7,7 +7,7 @@ description: Logan's default look for pages people work with, such as artifacts,
 
 This is my default for pages I work with, such as reports, dashboards, tools and research notebooks. It isn't a style for pages that have to sell something or stand out, so don't reach for bold or unusual choices to make a page memorable. It isn't bare minimalism either. A page of raw HTML, or one that only just works, misses this style as badly as a flashy one does. The aim is design that feels good to use and doesn't get in the way. Every choice is deliberate, and anything that doesn't help me read, check or act is left out.
 
-Restraint is what makes emphasis work. On a plain white page with one accent and a few greys, a red word or a bold number stands out without effort, and a chart can use many colours and still read clearly. Cards, tinted backgrounds and decorative colour use up that contrast, so when something does need to stand out, there's nothing left to make it stand out with. That's why this style has no cards and a small palette, and why boldness, when a page needs it, goes in one place.
+Restraint is what makes emphasis work. On a plain white page with one accent and a few greys, a red word or a bold number stands out without effort, and colour coding can use many colours and still read clearly. Cards, tinted backgrounds and decorative colour use up that contrast, so when something does need to stand out, there's nothing left to make it stand out with. That's why this style has no cards and a small palette, and why boldness, when a page needs it, goes in one place.
 
 A project's own design system or brand guide wins over this one. For an Artifact, the artifact-design skill's page contract still applies, and this skill decides the look wherever that contract leaves a choice. Where other design guidance asks for a distinctive aesthetic, follow this one for my pages.
 
@@ -50,9 +50,9 @@ These are the marks of a generated page, and each costs attention without carryi
 
 Albert Sans is for all text, with its digits taken from Figtree. Fira Code is only for IDs, hashes, code and commands, because monospace anywhere else is decoration. Pages don't substitute other families. The kit's seven sizes and three weights each have one job, and keeping to them is what lets a change of size or weight mean something.
 
-The palette is white, two inks, a muted grey for labels, two greys for rules, and one accent, a deep teal. The accent marks links, the current tab and the one primary button, so teal always means "you can act on this". Status colours for good, warning and critical are only for status, always on a word that says the same thing, so the meaning survives for colour-blind readers and in print. Colour the word rather than the sentence. A chart series that is itself a status, such as money wasted on a pod left running, takes that status colour.
+The palette is white, two inks, a muted grey for labels, two greys for rules, and one accent, a deep teal. The accent marks links, the current tab and the one primary button, so teal always means "you can act on this". Status colours for good, warning and critical are only for status, always on a word that says the same thing, so the meaning survives for colour-blind readers and in print. Colour the word rather than the sentence.
 
-Charts are where colour is spent. The first three series use the kit's tokens, and further series continue in the dataviz skill's categorical order. Each series keeps its colour on every chart.
+Colour coding is where colour is spent. When colour tells things apart, such as the models being compared, the series in a chart or the categories in a list, it can use as many distinct colours as the content needs, because the plain page leaves room for them. The first three come from the kit's tokens, and further ones continue in the dataviz skill's categorical order. A thing keeps its colour everywhere it appears, in charts, keys and tables alike, so I learn it once. Something that is itself a status, such as money wasted on a pod left running, takes that status colour. Colour that codes nothing is decoration, so leave it out.
 
 ## Lists and actions
 
