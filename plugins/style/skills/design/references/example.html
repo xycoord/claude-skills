@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Probe transfer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap">
+<link rel="stylesheet" href="base.css">
+<style>
+/* Page-specific additions only. */
+.str { color: var(--ink); display: block; }
+.flow li { display: grid; grid-template-columns: 84px minmax(0, 1fr); column-gap: 14px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 15px; }
+.flow li:last-child { border-bottom: 1px solid var(--line); }
+.flow .k { color: var(--muted); }
+.log > li { display: grid; grid-template-columns: 56px minmax(0, 1fr); column-gap: 14px; }
+.log .d { color: var(--muted); font-size: 14px; padding-top: 1px; }
+.warn { color: var(--warn-ink); font-size: 14px; margin-top: 10px; }
+.weeds { margin-top: 40px; }
+</style>
+</head>
+<body>
+<!-- A sample page in the default style: a research question, its answer, the evidence behind it and what's next.
+     Copy its patterns, not its content. Every number here is made up. -->
+<header class="top"><div class="wrap">
+  <a class="brand" href="#">ai-research notebook</a>
+  <a class="status" href="#">1 experiment running</a>
+  <nav class="tabs" aria-label="Views"><a href="#" aria-current="page">Threads</a><a href="#">Next</a><a href="#">Experiments</a></nav>
+</div></header>
+
+<main class="wrap page">
+  <div class="mg"><div class="ml"></div><div class="mc">
+    <p class="crumb"><a href="#">Threads</a></p>
+    <h1>Does a probe trained on instructed lies catch other kinds of lie?</h1>
+  </div></div>
+
+  <!-- The answer comes first, with its strength and a dated status in the margin. -->
+  <section class="mg sec"><div class="ml"><span class="str">Moderate</span>New 16 Nov</div><div class="mc">
+    <p class="lead">A probe trained on instructed lies scores near chance on sandbagging: AUROC 0.54 vs chance 0.50.</p>
+  </div></section>
+
+  <!-- The chart shows what makes the number mean something: chance, and baselines on the same scale. -->
+  <section class="mg sec"><div class="ml">Result</div><div class="mc">
+    <figure>
+      <div class="ftitle">AUROC by test set</div>
+      <div class="chart-slot" id="chart"></div>
+      <figcaption>Sandbagging n&nbsp;=&nbsp;212; the other sets n&nbsp;&gt;&nbsp;1,000. Mean and range of 3 seeds.</figcaption>
+    </figure>
+    <p class="warn">No skyline yet: no probe has been trained on sandbagging, so the best reachable score on this set is unknown.</p>
+  </div></section>
+
+  <section class="mg sec"><div class="ml">Method</div><div class="mc">
+    <p>The last-token probe, trained only on instructed lies, is scored without retraining on three test sets. Only the test data changes.</p>
+    <ol class="flow" style="margin-top:12px">
+      <li><span class="k">Train</span><span>Instructed lies, train split <span class="muted">n&nbsp;=&nbsp;2,400, 50% lies</span></span></li>
+      <li><span class="k">Probe</span><span>Logistic regression, layer 16, last-token readout</span></li>
+      <li><span class="k">Test</span><span>Held-out instructed lies, harm-pressure v2, sandbagging <span class="muted">n&nbsp;=&nbsp;600, 1,180, 212</span></span></li>
+    </ol>
+  </div></section>
+
+  <section class="mg sec"><div class="ml">Confidence</div><div class="mc">
+    <p>3 seeds agree, and the same probe reaches 0.93 on held-out instructed lies. Moderate, not strong: one model and one small sandbagging set.</p>
+  </div></section>
+
+  <section class="mg sec"><div class="ml">Caveats</div><div class="mc">
+    <p>The sandbagging set is small (n&nbsp;=&nbsp;212), so its 95% interval is 0.46–0.62.</p>
+  </div></section>
+
+  <!-- A list: each row is one link, and only its title underlines on hover. -->
+  <section class="mg sec"><div class="ml">Next</div><div class="mc">
+    <ul class="rows">
+      <li><a class="item" href="#"><span class="t">Does a probe trained on a mix of lie types detect sandbagging?</span><p class="a">Next: retrain on instructed plus harm-pressure lies, then test on sandbagging. <span class="muted nw">30 GPU-min</span></p></a></li>
+      <li><a class="item" href="#"><span class="t">Does the near-chance result hold on a second sandbagging set?</span><p class="a">Next: find or build a second sandbagging set; none found yet.</p></a></li>
+    </ul>
+  </div></section>
+
+  <section class="mg sec"><div class="ml">History</div><div class="mc">
+    <ul class="rows log">
+      <li><span class="d num">16 Nov</span><a class="item" href="#"><span class="t">Does a probe trained on instructed lies detect sandbagging?</span><p class="a"><b>No.</b> AUROC 0.54 on sandbagging vs 0.93 on held-out instructed lies and 0.84 on harm-pressure lies. 3 seeds.</p></a></li>
+    </ul>
+  </div></section>
+
+  <!-- Bookkeeping goes in one disclosure at the end, which stays open once opened. -->
+  <div class="mg weeds"><div class="ml"></div><div class="mc">
+    <details class="more" id="weeds"><summary>Code, data and records</summary><div class="dbody">
+      <dl class="kv">
+        <dt>Commit</dt><dd><a class="id" href="#">9d0e4f2</a></dd>
+        <dt>Rerun</dt><dd><code>uv run probes/transfer.py -c configs/E-2026-11-16-transfer.yaml</code></dd>
+        <dt>Results</dt><dd><a class="id" href="#">runs/claude-transfer-1/</a></dd>
+        <dt>Cost</dt><dd>$1.90 on an A40</dd>
+      </dl>
+    </div></details>
+  </div></div>
+</main>
+<footer class="wrap">Updated 17 Nov 14:02 from <span class="id">ai-research@3f9c2e1</span>.</footer>
+<div id="tip" hidden></div>
+
+<script>
+// Remember whether the bookkeeping disclosure is open, so it stays open while I'm working in the detail.
+const weeds = document.getElementById("weeds");
+try { weeds.open = localStorage.getItem("weeds") === "1"; } catch (e) {}
+weeds.addEventListener("toggle", () => { try { localStorage.setItem("weeds", weeds.open ? "1" : "0"); } catch (e) {} });
+
+// A horizontal dot-and-range chart, drawn at the container's real width so text stays at its set size.
+// Rows: the compared conditions (filled, in their series colour), then baselines (hollow, grey). Chance is a dashed line.
+const DATA = {
+  rows: [
+    { label: "Instructed (held-out)", v: 0.93, lo: 0.92, hi: 0.94 },
+    { label: "Harm-pressure", v: 0.84, lo: 0.82, hi: 0.86 },
+    { label: "Sandbagging", v: 0.54, lo: 0.50, hi: 0.58 },
+  ],
+  base: [
+    { label: "Length only, sandbagging", v: 0.57, lo: 0.57, hi: 0.57 },
+    { label: "Shuffled labels, sandbagging", v: 0.50, lo: 0.47, hi: 0.53 },
+  ],
+  chance: 0.5, from: 0.4, metric: "AUROC",
+};
+const f2 = v => v.toFixed(2), esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+function dotChart(D, slotW) {
+  const W = Math.min(slotW, 600), narrow = W < 460, L = narrow ? 120 : 196, R = narrow ? 52 : 116, rowH = narrow ? 38 : 30, top = 26;
+  const x = v => L + (W - L - R) * (v - D.from) / (1 - D.from);
+  let y = top, s = "";
+  const row = (d, ref) => {
+    const cy = y + rowH / 2, c = ref ? "var(--muted)" : "var(--s1)";
+    const words = d.label.split(" "), two = narrow && d.label.length > 14 && words.length > 1, cut = Math.ceil(words.length / 2);
+    const lines = two ? [words.slice(0, cut).join(" "), words.slice(cut).join(" ")] : [d.label];
+    s += `<text class="${ref ? "ref-lab" : "lab"}" x="0" y="${cy + 4 - (lines.length - 1) * 7}" font-size="13">${lines.map((t, k) => `<tspan x="0" dy="${k ? 14 : 0}">${esc(t)}</tspan>`).join("")}</text>`;
+    if (d.hi - d.lo > 0.03 || !ref) s += `<path d="M${x(d.lo)} ${cy}H${x(d.hi)}M${x(d.lo)} ${cy - 5}v10M${x(d.hi)} ${cy - 5}v10" stroke="${c}" stroke-width="2" fill="none"/>`;
+    s += `<circle cx="${x(d.v)}" cy="${cy}" r="4.5" fill="${ref ? "var(--bg)" : c}" stroke="${c}" stroke-width="2" data-tip="${esc(d.label)}: ${f2(d.v)}${d.hi > d.lo ? ` (seeds ${f2(d.lo)}–${f2(d.hi)})` : ""}"/>`;
+    s += `<text class="${ref ? "" : "val"}" x="${W - R + 12}" y="${cy + 4}" font-size="13">${f2(d.v)}${narrow || d.hi === d.lo ? "" : `<tspan class="rng" dx="8">${f2(d.lo)}–${f2(d.hi)}</tspan>`}</text>`;
+    y += rowH;
+  };
+  [...D.rows].sort((a, b) => b.v - a.v).forEach(d => row(d, false));
+  y += 8; s += `<text x="0" y="${y + 14}" font-size="12" font-weight="600">Baselines</text>`; y += 22;
+  D.base.forEach(d => row(d, true));
+  const H = y + 22;
+  let g = "";
+  for (let t = D.from; t <= 1.0001; t += 0.1) { const tx = x(t); g += `<line class="grid" x1="${tx}" x2="${tx}" y1="${top - 4}" y2="${H - 22}"/>`; if (Math.round(t * 10) % 2 === 0) g += `<text x="${tx}" y="${H - 6}" text-anchor="middle" font-size="12">${t.toFixed(1)}</text>`; }
+  g += `<line class="ref" x1="${x(D.chance)}" x2="${x(D.chance)}" y1="${top - 2}" y2="${H - 22}"/><text class="ref-lab" x="${x(D.chance)}" y="${top - 10}" text-anchor="middle" font-size="12">chance ${f2(D.chance)}</text>`;
+  g += `<text x="${W - R}" y="${H + 10}" text-anchor="end" font-size="12">${D.metric}</text>`;
+  return `<svg class="chart" width="${W}" height="${H + 22}" viewBox="0 -8 ${W} ${H + 22}" role="img" aria-label="${D.metric} by test set">${g}${s}</svg>`;
+}
+const slot = document.getElementById("chart"), draw = () => slot.innerHTML = dotChart(DATA, slot.clientWidth);
+draw(); addEventListener("resize", draw); document.fonts && document.fonts.ready.then(draw);
+
+// Exact values on hover or tap.
+const tip = document.getElementById("tip");
+document.addEventListener("pointermove", e => { const el = e.target.closest("[data-tip]"); if (!el) return tip.hidden = true; tip.textContent = el.dataset.tip; tip.hidden = false; tip.style.left = Math.min(innerWidth - tip.offsetWidth - 8, e.clientX + 12) + "px"; tip.style.top = (e.clientY - tip.offsetHeight - 10) + "px"; });
+</script>
+</body>
+</html>
