@@ -37,7 +37,7 @@ b, strong { font-weight: 600; }
 .small { font-size: 14px; }
 .num { font-variant-numeric: tabular-nums; }
 .nw { white-space: nowrap; }
-.id, code { font-family: var(--f-mono); font-size: 0.88em; font-variant-ligatures: none; }  /* IDs, hashes, code, commands only */
+.id, code { font-family: var(--f-mono); font-size: max(13px, 0.88em); font-variant-ligatures: none; }  /* IDs, hashes, code, commands only */
 .id { white-space: nowrap; }
 pre { font-family: var(--f-mono); font-size: 14px; font-variant-ligatures: none; overflow-x: auto; padding: 10px 0; border-block: 1px solid var(--line); }
 .crit { color: var(--crit); } .warn { color: var(--warn-ink); } .good { color: var(--good); }   /* on the status word only */
@@ -59,7 +59,7 @@ footer { padding-block: 0 48px; font-size: 13px; color: var(--muted); }
 /* Header bar: short name, at most one live status, tabs if the page has sibling views. Leave it out on a standalone page. */
 .top { border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 0; z-index: 5; }
 .top .wrap { display: flex; flex-wrap: wrap; align-items: center; column-gap: 28px; }
-.brand { font-weight: 600; font-size: 17px; color: var(--ink); padding-block: 12px; margin-right: auto; }
+.brand { font-weight: 600; font-size: 17px; color: var(--ink); min-height: 44px; display: inline-flex; align-items: center; margin-right: auto; }
 .brand:hover { text-decoration: none; }
 .status { font-size: 14px; min-height: 44px; display: inline-flex; align-items: center; }
 .status.crit { color: var(--crit); font-weight: 600; }
