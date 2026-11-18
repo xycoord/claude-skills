@@ -19,7 +19,7 @@ Paste `references/base.css` and `references/base.js` into the page, and `referen
 
 Each page leads with what I came for. A results page opens with the result, a status page with whether anything needs me, and a tool with the thing I came to do. Everything after that helps me understand it, check it or act on it.
 
-A results page keeps the same order every time, so I know where to look: the answer, what was compared and how its data was built, the result charts, the method, the checks, examples, confidence and caveats, and what to try next. What was compared comes before the results because it introduces the things being compared and their colours, so the charts read at a glance. Show it as a diagram or table rather than prose where you can, because I can decide to skip a diagram in a moment, while skipping prose means reading it first. A brief that lists these in another order is telling you what to include, not where to put it. A breadcrumb belongs only on a page that is part of a site with a home to go back to.
+A results page keeps the same order every time, so I know where to look: the answer, what was compared and how its data was built, the result charts, the method, the checks, examples, confidence and caveats, and what to try next. What was compared comes before the results because it introduces the things being compared and their colours, so the charts read at a glance. Show it as a diagram or table rather than prose where you can, because I can decide to skip a diagram in a moment, while skipping prose means reading it first. A brief that lists these in another order is telling you what to include, not where to put it.
 
 Bookkeeping is whatever the page's question isn't about, and it goes in one disclosure at the end, called something plain like "Code, data and records". On a results page that means IDs, costs, run names and raw configuration, but on a spending page costs are the subject and stay visible. The disclosure stays open once opened, so it's there on every page while I'm working in the detail.
 
@@ -36,6 +36,8 @@ A page is one typeset column on a plain white background, with no cards, boxes, 
 A margin column on the left labels each section with a plain word (Result, Method, Caveats) and holds its date or status, so I can scan a page by its labels without them interrupting the reading. A section has a margin label or, on a page long enough to need headings, a heading, but not both. Titles say something specific, such as "Which layer gives the best probe?" rather than "Results", so I can tell I'm in the right place.
 
 The header bar holds a short name, at most one live status, and tabs if the page has sibling views. A page with neither tabs nor a live status has no header bar, and its title starts the page.
+
+An artifact has no back button, so every page or view reached from another one shows the way back at the top. Usually that's the header's name linking home, or a short line naming the page above. The link goes back through the history when there is one, so I return to where I was on the page I came from, and opens the parent page when there isn't. Within one artifact, separate views are better as hash views of a single page than as separate files, because each view then has an address I can link to and the way back stays inside the page.
 
 These are the marks of a generated page, and each costs attention without carrying information, so leave them out:
 

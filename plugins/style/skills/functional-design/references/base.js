@@ -30,3 +30,10 @@
   document.addEventListener("focusout", () => tip.hidden = true);
   addEventListener("scroll", () => tip.hidden = true, { passive: true });
 })();
+
+// The way back. An artifact has no back button, so a link with data-back returns through the history
+// (to the same scroll position on the page I came from) when there is one, and follows its href when there isn't.
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest("a[data-back]");
+  if (a && history.length > 1 && document.referrer) { e.preventDefault(); history.back(); }
+});
