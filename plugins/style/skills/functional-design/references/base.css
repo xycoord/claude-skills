@@ -12,17 +12,17 @@
   --line: #dde2e8; --line-2: #c4cbd4; --grid: #eaedf1;
   --accent: #0f6a78;                                     /* links, the current tab, the one primary button */
   --good: #1f7a3a; --warn-ink: #9a4a0c; --crit: #c23434;  /* status only, always on a word that says the same */
-  --s1: #2F62A8; --s2: #8A93A0; --s3: #7B61C9;            /* chart series, fixed per entity */
+  --s1: #2F62A8; --s2: #7B61C9; --s3: #B07A12;            /* chart series, fixed per entity; grey is kept for references */
   --f-sans: "Albert Digits", "Albert Sans", system-ui, sans-serif;
   --f-mono: "Fira Code", ui-monospace, Menlo, monospace;
   --mgw: 170px; --gut: 36px;                            /* margin column and its gap */
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #16171a; --ink: #eceff3; --ink-2: #c3cad4; --muted: #8d96a3; --line: #2a2c31; --line-2: #464a52; --grid: #222830;
-  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #5B8FD9; --s2: #9AA3AF; --s3: #9C87E6; color-scheme: dark; } }
+  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #5B8FD9; --s2: #9C87E6; --s3: #D9A441; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #16171a; --ink: #eceff3; --ink-2: #c3cad4; --muted: #8d96a3; --line: #2a2c31; --line-2: #464a52; --grid: #222830;
-  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #5B8FD9; --s2: #9AA3AF; --s3: #9C87E6; color-scheme: dark; }
+  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #5B8FD9; --s2: #9C87E6; --s3: #D9A441; color-scheme: dark; }
 
 /* Type: 24 title, 20 opening answer, 17 headings, 16 body, 15 secondary, 14 labels and captions, 13 footer and table heads. */
 * { box-sizing: border-box; }
@@ -148,7 +148,7 @@ table.main th { font-size: 14px; }
   table.stack, table.stack tbody, table.stack tr, table.stack td { display: block; width: 100%; }
   table.stack thead { display: none; }
   table.stack tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
-  table.stack td { border: 0; padding: 2px 0; }
+  table.stack td { border: 0; padding: 2px 0; text-align: left; }
   table.stack td:first-child { font-weight: 600; }
   table.stack td[data-label]:not(:first-child)::before { content: attr(data-label); display: block; font-size: 13px; color: var(--muted); }
 }
