@@ -249,10 +249,13 @@ run gets a line too, at no cost, so the log lists every run.
 ## 8. Prove the plumbing on a tiny run
 
 Run a tiny version first, on CPU in the session where possible: a few
-examples, one seed, a small model, and every arm, controls included. Take the
-examples from the training or development split, or make them up, and never
-from the test split or an exploration's held-out portion. The tiny run proves
-the code works, not the result. An item below is whatever the result is made
+examples, one seed, a small model, and the fewest conditions that still run
+every code path, with every arm and control. It should take about a minute
+at most. Take the examples from the training or development split, or make
+them up, and never from the test split or an exploration's held-out portion.
+The tiny run proves the code works, not the result. A sizing question, such
+as how many steps training needs to level off, gets its own short run on the
+slowest condition alone, not the whole grid. An item below is whatever the result is made
 of: a prompt and its response, a synthetic input, or a trained model. Check
 that:
 - it runs end to end, and its outputs have the right shapes and ranges;
