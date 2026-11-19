@@ -67,7 +67,10 @@ of results already on Hugging Face, plotting. Use a GPU pod when a GPU would
 help, even a cheap one: for anything that would take more than a few minutes
 on CPU, or that needs activations from a model too big to run quickly on CPU.
 Choose the GPU with the lowest cost for the whole run, setup included, among
-those that fit the model in memory.
+those that fit the model in memory. Stock changes by the minute, so if your
+first choice is out of stock, try the next few suitable GPU types and data
+centres, as the `compute` skill says, before falling back to CPU. Moving a
+run to CPU means sizing it again for CPU (section 8).
 
 Use whichever libraries suit the work, such as NumPy, scikit-learn, PyTorch
 or JAX, and add any the repo lacks with `uv add`. Write the code so it isn't
@@ -246,10 +249,13 @@ run gets a line too, at no cost, so the log lists every run.
 ## 8. Prove the plumbing on a tiny run
 
 Run a tiny version first, on CPU in the session where possible: a few
-examples, one seed, a small model, and every arm, controls included. Take the
-examples from the training or development split, or make them up, and never
-from the test split or an exploration's held-out portion. The tiny run proves
-the code works, not the result. An item below is whatever the result is made
+examples, one seed, a small model, and the fewest conditions that still run
+every code path, with every arm and control. It should take about a minute
+at most. Take the examples from the training or development split, or make
+them up, and never from the test split or an exploration's held-out portion.
+The tiny run proves the code works, not the result. A sizing question, such
+as how many steps training needs to level off, gets its own short run on the
+slowest condition alone, not the whole grid. An item below is whatever the result is made
 of: a prompt and its response, a synthetic input, or a trained model. Check
 that:
 - it runs end to end, and its outputs have the right shapes and ranges;
@@ -268,11 +274,20 @@ tokenizer, which loads on CPU without the weights. Fetch the real model's
 uses a different model or machine, have the job start with the same checks
 on a few examples and stop itself if one fails.
 
-Then time the tiny run and look at where the time goes. If most of it is
-Python overhead, one busy core, or waiting on data, fix that before the real
-run, because a run that takes ten times longer than it needs to also costs
-ten times as much on a pod. Then estimate the cost again. The tiny run's
-timing carries over only when the model and machine match. Go back to section 6 if the new worst case
+Then time the tiny run and project the real run from it, scaling by steps,
+seeds, conditions and model size. The tiny run's timing carries over only
+when the model and machine match.
+- **If the projection is more than about 10 minutes on CPU,** size the run
+  to what the question needs before launching. Use fewer steps where the
+  tiny run shows the loss has levelled off, a smaller batch, or fewer
+  conditions, or move it to a GPU. Each change is an amendment to the plan,
+  and the prediction and decision rule stay as they are.
+- **Speed up only what the profile shows is most of the time,** such as
+  Python overhead, one busy core, or waiting on data, and stop once the
+  projected run is short enough. Ten minutes spent saving a third of a step
+  that isn't the bottleneck costs more than it saves.
+
+Then estimate the cost again, and go back to section 6 if the new worst case
 needs a yes, or goes over the ceiling of one already given.
 
 Commit and push the code and its config (`configs/<experiment-id>.yaml`)

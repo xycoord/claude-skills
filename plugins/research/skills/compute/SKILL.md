@@ -137,8 +137,10 @@ of running it again. Its header lists every setting.
 - **At a $0 balance** Runpod stops all pods: those without a network volume
   lose their data, and network volumes are eventually deleted too. Keep
   results on HF as they're produced.
-- **Stock moves fast.** "No instances available" is capacity: try another GPU
-  type. A CPU pod (`cpu: {id: cpu3c, vcpuCount: 2}`, $0.06/h) does for
+- **Stock moves fast.** Check what's in stock before creating
+  (`list-gpu-types` with `AVAILABILITY`, or `get-capacity`). "No instances
+  available" is capacity, not a bad request: try the next few suitable GPU
+  types and data centres, since several tries are normal. A CPU pod (`cpu: {id: cpu3c, vcpuCount: 2}`, $0.06/h) does for
   anything that doesn't need a GPU.
 - **Avoid MIG slices** (`… MIG 1g.24gb`): a fraction of a card that can't
   report its own memory.
