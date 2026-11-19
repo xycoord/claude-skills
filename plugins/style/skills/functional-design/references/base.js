@@ -15,20 +15,21 @@
   addEventListener("afterprint", () => { document.querySelectorAll("details[data-remember]").forEach(d => { d.open = d.dataset.was === "1"; }); setTimeout(() => printing = false); });
 })();
 
-// Exact values on hover, tap or keyboard focus, for any element with a data-tip attribute.
+// Exact values on hover, tap or keyboard focus, for any element with a data-tip (plain text) or data-tip-html attribute.
 // Give chart marks a larger transparent twin carrying the same data-tip, so they're easy to tap.
 (() => {
   let tip = document.getElementById("tip");
   if (!tip) { tip = document.createElement("div"); tip.id = "tip"; tip.hidden = true; document.body.appendChild(tip); }
   const show = (el, x, y) => {
-    tip.textContent = el.dataset.tip; tip.hidden = false;
+    if (el.dataset.tipHtml != null) tip.innerHTML = el.dataset.tipHtml; else tip.textContent = el.dataset.tip;  // tip-html is built by the kit from escaped strings
+    tip.hidden = false;
     tip.style.left = Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, x + 12)) + "px";
     tip.style.top = Math.max(8, Math.min(innerHeight - tip.offsetHeight - 8, y - tip.offsetHeight - 10)) + "px";
   };
-  const at = e => { const el = e.target.closest && e.target.closest("[data-tip]"); if (el) show(el, e.clientX, e.clientY); else tip.hidden = true; };
+  const at = e => { const el = e.target.closest && e.target.closest("[data-tip], [data-tip-html]"); if (el) show(el, e.clientX, e.clientY); else tip.hidden = true; };
   document.addEventListener("pointermove", at);
   document.addEventListener("pointerdown", at);
-  document.addEventListener("focusin", e => { const el = e.target.closest("[data-tip]"); if (el) { const r = el.getBoundingClientRect(); show(el, r.left + r.width / 2, r.top); } });
+  document.addEventListener("focusin", e => { const el = e.target.closest("[data-tip], [data-tip-html]"); if (el) { const r = el.getBoundingClientRect(); show(el, r.left + r.width / 2, r.top); } });
   document.addEventListener("focusout", () => tip.hidden = true);
   addEventListener("scroll", () => tip.hidden = true, { passive: true });
 })();

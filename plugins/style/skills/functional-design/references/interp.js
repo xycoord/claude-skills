@@ -38,7 +38,7 @@ const IV = (() => {
 function tokenText(el, o) {
   const signed = o.signed !== false, scale = o.scale || Math.max(...o.tokens.map(([, v]) => Math.abs(v))) || 1;
   el.setAttribute("data-viz", "");
-  el.innerHTML = `<p class="iv-text">${o.tokens.map(([t, v]) => `<span class="iv-tok" tabindex="0" style="background:${IV.tint(v, scale, signed)}" data-tip="${FD.esc(`${JSON.stringify(t)}: ${IV.f2(v)}`)}">${FD.esc(IV.run(t))}</span>`).join("")}</p>${o.noKey ? "" : IV.key(scale, signed, o.label)}`;
+  el.innerHTML = `<p class="iv-text">${o.tokens.map(([t, v]) => `<span class="iv-tok" tabindex="0" style="background:${IV.tint(v, scale, signed)}" data-tip-html="${FD.esc(`${IV.tok(t)} ${IV.f2(v)}`)}">${FD.esc(IV.run(t))}</span>`).join("")}</p>${o.noKey ? "" : IV.key(scale, signed, o.label)}`;
 }
 
 // A feature's top-activating contexts, strongest first: each a window of text around its peak token,
@@ -48,7 +48,7 @@ function topExamples(el, o) {
   el.setAttribute("data-viz", "");
   let h = "";
   if (o.hist) h += `<div class="iv-hist"></div>`;
-  h += `<ol class="iv-examples">${[...o.examples].sort((a, b) => b.max - a.max).map(e => `<li><p class="iv-text">${e.tokens.map(([t, v]) => `<span class="iv-tok" tabindex="0" style="background:${IV.tint(v, scale, false)}" data-tip="${FD.esc(`${JSON.stringify(t)}: ${IV.f2(v)}`)}">${FD.esc(IV.run(t))}</span>`).join("")}</p><span class="iv-max">${IV.f2(e.max)}</span></li>`).join("")}</ol>`;
+  h += `<ol class="iv-examples">${[...o.examples].sort((a, b) => b.max - a.max).map(e => `<li><p class="iv-text">${e.tokens.map(([t, v]) => `<span class="iv-tok" tabindex="0" style="background:${IV.tint(v, scale, false)}" data-tip-html="${FD.esc(`${IV.tok(t)} ${IV.f2(v)}`)}">${FD.esc(IV.run(t))}</span>`).join("")}</p><span class="iv-max">${IV.f2(e.max)}</span></li>`).join("")}</ol>`;
   h += IV.key(scale, false, o.label || "Activation");
   el.innerHTML = h;
   if (o.hist) {
@@ -79,7 +79,7 @@ function heatmap(el, o) {
       o.cols.forEach((c, j) => {
         if (o.mask && o.mask(i, j)) return;
         const v = o.values[i][j]; if (v == null) return;
-        s += `<rect x="${L + cell * j + 0.5}" y="${T + cell * i + 0.5}" width="${cell - 1}" height="${cell - 1}" fill="${IV.tint(v, scale, signed, 90)}" tabindex="0" data-tip="${FD.esc(`${o.rowLabel || "Row"} ${IV.show(String(r))}, ${o.colLabel || "column"} ${IV.show(String(c))}: ${IV.f2(v)}`)}"/>`;
+        s += `<rect x="${L + cell * j + 0.5}" y="${T + cell * i + 0.5}" width="${cell - 1}" height="${cell - 1}" fill="${IV.tint(v, scale, signed, 90)}" tabindex="0" data-tip-html="${FD.esc(`${o.rowLabel || "Row"} ${o.tokenRows ? IV.tok(r) : FD.esc(String(r))}, ${o.colLabel || "column"} ${o.tokenCols !== false ? IV.tok(c) : FD.esc(String(c))}: ${IV.f2(v)}`)}"/>`;
       });
     });
     o.cols.forEach((c, j) => { const x = L + cell * j + cell / 2; s += `<text class="${o.tokenCols !== false ? "lab tok" : "lab"}" transform="translate(${x + 4} ${T + cell * nr + 8}) rotate(-60)" text-anchor="end" font-size="12">${o.tokenCols !== false ? IV.tokSvg(c) : FD.esc(String(c))}</text>`; });
@@ -113,8 +113,8 @@ function lensExplorer(el, o) {
     const rows = [...Array(NL).keys()].reverse().map(l => `<tr><th scope="row">${o.layers[l]}</th>${o.tokens.map((_, p) => {
       const [t, pr] = o.top[l][p][0], r = st.shade === "prob" ? null : rankOf(st.shade, l, p), sel = st.sel[0] === l && st.sel[1] === p;
       const bg = st.shade === "prob" ? IV.tint(pr, 1, false, 62) : rankTint(r);
-      const tip = `${lab(l)}, after ${JSON.stringify(o.tokens[p])}: ${o.top[l][p].slice(0, 5).map(([x, v]) => `${JSON.stringify(x)} ${pct(v)}`).join(", ")}${st.shade !== "prob" ? `. ${JSON.stringify(st.shade)} is ${r ? "rank " + r : "not in the top " + K}` : ""}`;
-      return `<td class="${sel ? "lx-sel" : ""}" tabindex="${sel ? 0 : -1}" data-l="${l}" data-p="${p}" style="background:${bg}" data-tip="${FD.esc(tip)}">${IV.tok(t)}</td>`;
+      const tip = `<b>${FD.esc(lab(l))}</b>, after ${IV.tok(o.tokens[p])}<span class="tip-rows">${o.top[l][p].slice(0, 5).map(([x, v]) => `${IV.tok(x)}<span>${pct(v)}</span>`).join("")}</span>${st.shade !== "prob" ? `${IV.tok(st.shade)} is ${r ? "rank " + r : "not in the top " + K}` : ""}`;
+      return `<td class="${sel ? "lx-sel" : ""}" tabindex="${sel ? 0 : -1}" data-l="${l}" data-p="${p}" style="background:${bg}" data-tip-html="${FD.esc(tip)}">${IV.tok(t)}</td>`;
     }).join("")}</tr>`).join("");
     return `<div class="tablewrap"><table class="lx-grid" style="min-width:${52 + NP * 84}px"><colgroup><col class="lx-lcol">${o.tokens.map(() => "<col>").join("")}</colgroup>`
       + `<tbody>${rows}</tbody><tfoot><tr><th scope="col" class="lx-corner">${FD.esc(o.layerLabel || "Layer")}</th>${o.tokens.map((t, p) => `<th scope="col" class="${st.sel[1] === p ? "lx-cur" : ""}">${IV.tok(t)}</th>`).join("")}</tr></tfoot></table></div>`;
@@ -145,7 +145,7 @@ function lensExplorer(el, o) {
       st.pins.forEach(t => {
         const c = `var(--s${st.slot[t]})`, pts = o.layers.map((_, l) => { const r = rankOf(t, l, p); return [X(l), r ? Y(r) : Yout, r]; });
         s += `<polyline fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" points="${pts.map(([x, y]) => x + "," + y).join(" ")}"/>`;
-        pts.forEach(([x, y, r], l) => { s += `<circle cx="${x}" cy="${y}" r="${l === st.sel[0] ? 4.5 : 2.5}" fill="${c}"/>` + FD.hit(x, y, `${JSON.stringify(t)}, ${lab(l)}: ${r ? "rank " + r : "not in the top " + K}`, 8); });
+        pts.forEach(([x, y, r], l) => { s += `<circle cx="${x}" cy="${y}" r="${l === st.sel[0] ? 4.5 : 2.5}" fill="${c}"/>` + `<circle cx="${x}" cy="${y}" r="8" fill="transparent" tabindex="0" data-tip-html="${FD.esc(`${IV.tok(t)}, ${FD.esc(lab(l))}: ${r ? "rank " + r : "not in the top " + K}`)}"/>`; });
       });
       return FD.svg(W, H, `Rank by layer of the pinned tokens`, s);
     });
@@ -170,7 +170,7 @@ function lensExplorer(el, o) {
 function logitLens(el, o) { lensExplorer(el, { ...o, gridOnly: true }); }
 
 // An attribution or circuit graph, laid out in columns from inputs on the left to outputs on the right.
-// columns: [{ label, nodes: [{ id, label, note }] }], edges: [{ from, to, w }] with w signed.
+// columns: [{ label, nodes: [{ id, label, note, tok }] }], edges: [{ from, to, w }] with w signed. tok: true sets a label as a token.
 // Edge width shows |w|, colour its sign; hovering or focusing a node fades everything not connected to it.
 function graph(el, o) {
   el.setAttribute("data-viz", "");
@@ -185,11 +185,11 @@ function graph(el, o) {
     o.edges.forEach(e => {
       const a = pos[e.from], b = pos[e.to]; if (!a || !b) return;
       const x1 = a.x + nodeW, y1 = a.y + nodeH / 2, x2 = b.x, y2 = b.y + nodeH / 2, mx = (x1 + x2) / 2;
-      s += `<path class="iv-edge" data-from="${e.from}" data-to="${e.to}" d="M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2 - 2} ${y2}" fill="none" stroke="var(${e.w > 0 ? "--div-pos" : "--div-neg"})" stroke-opacity="0.75" stroke-width="${(1 + 5 * Math.abs(e.w) / maxW).toFixed(2)}"><title>${FD.esc(`${pos[e.from].n.label} → ${pos[e.to].n.label}: ${e.w > 0 ? "+" : ""}${IV.f2(e.w)}`)}</title></path>`;
+      s += `<path class="iv-edge" data-from="${e.from}" data-to="${e.to}" d="M${x1} ${y1}C${mx} ${y1} ${mx} ${y2} ${x2 - 2} ${y2}" fill="none" stroke="var(${e.w > 0 ? "--div-pos" : "--div-neg"})" stroke-opacity="0.75" stroke-width="${(1 + 5 * Math.abs(e.w) / maxW).toFixed(2)}"><title>${FD.esc(`${pos[e.from].n.label.trim()} to ${pos[e.to].n.label.trim()}: ${e.w > 0 ? "+" : ""}${IV.f2(e.w)}`)}</title></path>`;
     });
     Object.entries(pos).forEach(([id, p]) => {
-      s += `<g class="iv-node" data-id="${id}" tabindex="0" data-tip="${FD.esc(p.n.label + (p.n.note ? `: ${p.n.note}` : ""))}"><rect class="box" x="${p.x}" y="${p.y}" width="${nodeW}" height="${nodeH}" rx="4"/>`
-        + `<text x="${p.x + nodeW / 2}" y="${p.y + (p.n.note ? 17 : 24)}" text-anchor="middle" font-size="13">${FD.esc(p.n.label)}</text>`
+      s += `<g class="iv-node" data-id="${id}" tabindex="0" data-tip-html="${FD.esc((p.n.tok ? IV.tok(p.n.label) : FD.esc(p.n.label)) + (p.n.note ? `: ${FD.esc(p.n.note)}` : ""))}"><rect class="box" x="${p.x}" y="${p.y}" width="${nodeW}" height="${nodeH}" rx="4"/>`
+        + `<text class="${p.n.tok ? "tok" : ""}" x="${p.x + nodeW / 2}" y="${p.y + (p.n.note ? 17 : 24)}" text-anchor="middle" font-size="13">${FD.esc(p.n.label)}</text>`
         + (p.n.note ? `<text class="note" x="${p.x + nodeW / 2}" y="${p.y + 32}" text-anchor="middle" font-size="12">${FD.esc(p.n.note)}</text>` : "") + `</g>`;
     });
     return `<svg class="diagram iv-graph" width="${W}" height="${T + H}" viewBox="0 0 ${W} ${T + H}" role="img" aria-label="${FD.esc(o.label || "Attribution graph")}">${s}</svg>`;

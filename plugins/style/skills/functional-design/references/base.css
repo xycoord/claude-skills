@@ -150,6 +150,9 @@ table.main { font-size: 16px; width: 100%; }        /* the page's main compariso
 table.main th { font-size: 14px; }
 .tablewrap { overflow-x: auto; }
 .tablewrap th:first-child, .tablewrap td:first-child { position: sticky; left: 0; background: var(--bg); }
+#tip .tok { font-size: 13px; }
+#tip .tip-rows { display: grid; grid-template-columns: auto auto; column-gap: 14px; margin: 4px 0; font-variant-numeric: tabular-nums; }
+#tip .tip-rows > span:nth-child(even) { text-align: right; }
 #tip { position: fixed; z-index: 20; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 13px; padding: 5px 8px; border-radius: 5px; max-width: 280px; }
 [hidden] { display: none !important; }
 

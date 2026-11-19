@@ -61,7 +61,7 @@
 
   <div class="mg"><div class="ml"><span>Attribution graph</span></div><div class="mc"><p>A graph uses the full page width, since it isn't read line by line.</p></div></div>
   <figure class="bleed">
-    <div class="ftitle">What drives the lie score on "nothing to worry about"</div>
+    <div class="ftitle">What drives the lie score on <span class="tok"> nothing to worry about</span></div>
     <div class="tablewrap" id="graph"></div>
     <figcaption>Inputs on the left, features at two layers, and the probe's score on the right. Edge width is how much one node drives the next, red pushing toward "lie" and blue against it. Hover or focus a node to see only its connections.</figcaption>
   </figure>
@@ -113,7 +113,7 @@ lensExplorer(document.getElementById("lens"), { tokens: lensTokens, layers: lens
 
 graph(document.getElementById("graph"), { label: "Attribution graph for the lie score",
   columns: [
-    { label: "Input tokens", nodes: [{ id: "t1", label: "“supplement”" }, { id: "t2", label: "“safety test”" }, { id: "t3", label: "“nothing to worry”" }] },
+    { label: "Input tokens", nodes: [{ id: "t1", label: " supplement", tok: true }, { id: "t2", label: " safety test", tok: true }, { id: "t3", label: " nothing to worry", tok: true }] },
     { label: "Layer 8 features", nodes: [{ id: "a", label: "Health product", note: "F 1,032" }, { id: "b", label: "Safety claim", note: "F 2,880" }, { id: "c", label: "Reassurance", note: "F 4,217" }] },
     { label: "Layer 16 features", nodes: [{ id: "d", label: "Risk being downplayed", note: "F 6,114" }, { id: "e", label: "Hedged honesty", note: "F 5,402" }] },
     { label: "Output", nodes: [{ id: "o", label: "Lie score", note: "+2.8" }] }],
