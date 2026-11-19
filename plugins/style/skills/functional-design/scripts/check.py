@@ -24,7 +24,7 @@ PROBE = r"""
   const lum = ([r, g, b]) => { const f = v => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
   const bgOf = el => { for (let e = el; e; e = e.parentElement) { const c = rgb(getComputedStyle(e).backgroundColor); if (c.length < 4 || c[3] > 0.9) return c; } return [255, 255, 255]; };
   const pageBg = rgb(getComputedStyle(document.body).backgroundColor).slice(0, 3).join();
-  const isCode = el => !!el.closest("code, pre, kbd, samp, .id");
+  const isCode = el => !!el.closest("code, pre, kbd, samp, .id, .tok");
   const control = el => el.matches("input, select, textarea, button, #tip, #tip *");
   const inViz = el => !!el.closest("[data-viz]");  // views whose colour encodes values (interp.js) may tint backgrounds
   const emoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
@@ -40,7 +40,7 @@ PROBE = r"""
       if (/[→↗›»]\s*$/.test(text) && el.closest("a, button")) add("arrow on a link or button", el);
       if (emoji.test(text)) add("emoji", el);
       const fg = rgb(s.color), bg = bgOf(el), L1 = lum(fg), L2 = lum(bg), ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
-      if (ratio < (size >= 24 ? 3 : 4.5)) add("low text contrast (under 4.5:1, or 3:1 at 24px and up)", el, `${describe(el)} (${ratio.toFixed(2)}:1)`);
+      if (ratio < (size >= 24 || el.matches(".ws") ? 3 : 4.5)) add("low text contrast (under 4.5:1, or 3:1 at 24px and up and for space marks)", el, `${describe(el)} (${ratio.toFixed(2)}:1)`);
     }
     if (s.boxShadow !== "none" && !control(el)) add("shadows", el);
     if (/gradient/.test(s.backgroundImage)) add("gradients", el);

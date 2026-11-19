@@ -8,7 +8,8 @@
 //   tokenText(el, { tokens: [[text, value], ...], scale, signed, label })    per-token values over text
 //   topExamples(el, { title, note, examples: [{ tokens, max }], hist, scale }) a feature's top-activating contexts
 //   heatmap(el, { rows, cols, values, signed, scale, rowLabel, colLabel, mask }) values over two axes
-//   logitLens(el, { layers, positions, cells })                               top prediction per layer and position
+//   lensExplorer(el, { tokens, layers, top, pins, select, layerLabel })      a lens readout per layer and position
+//   logitLens(el, same options)                                              the lens grid alone
 //   graph(el, { columns, edges })                                             an attribution or circuit graph
 
 const IV = (() => {
@@ -20,14 +21,20 @@ const IV = (() => {
   };
   const f2 = v => (Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));
   const show = s => s.replace(/\n/g, "↵").replace(/^ /, " ").replace(/ $/, " ");
-  const run = s => s.replace(/\n/g, "↵\n");  // in running text a token wraps normally; show() keeps edge spaces visible for labels
+  const run = s => s.replace(/\n/g, "↵\n");
+  // A token shown as a unit (a lens cell, a readout, an axis label) is set in monospace, with a faint mark for a
+  // leading or trailing space, because there its exact string matters: " Paris" and "Paris" are different tokens.
+  const tok = t => { const m = String(t).match(/^( *)([\s\S]*?)( *)$/), ws = n => n ? `<span class="ws">${"␣".repeat(n.length)}</span>` : "";
+    return `<span class="tok">${ws(m[1])}${FD.esc(m[2].replace(/\n/g, "↵"))}${ws(m[3])}</span>`; };
+  const tokSvg = t => { const m = String(t).match(/^( *)([\s\S]*?)( *)$/), ws = n => n ? `<tspan class="ws">${"␣".repeat(n.length)}</tspan>` : "";
+    return `${ws(m[1])}${FD.esc(m[2].replace(/\n/g, "↵"))}${ws(m[3])}`; };  // in running text a token wraps normally; show() keeps edge spaces visible for labels
   // A stepped key, rather than a gradient, so each step is a colour the view actually uses.
   const key = (scale, signed, label) => {
     const steps = signed ? [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1] : [0, 0.25, 0.5, 0.75, 1];
     return `<div class="iv-key"><span class="iv-key-steps">${steps.map(s => `<i style="background:${tint(s * scale, scale, signed)}"></i>`).join("")}</span>`
       + `<span class="iv-key-labels"><span>${signed ? "−" + f2(scale) : "0"}</span>${signed ? "<span>0</span>" : ""}<span>${f2(scale)}</span></span>${label ? `<span class="iv-key-label">${FD.esc(label)}</span>` : ""}</div>`;
   };
-  return { tint, f2, show, run, key };
+  return { tint, f2, show, run, tok, tokSvg, key };
 })();
 
 // Per-token values laid over the text itself: a pale tint behind each token, exact value on hover or focus.
@@ -71,26 +78,99 @@ function heatmap(el, o) {
     const bot = Math.min(110, 16 + Math.max(...o.cols.map(c => FD.measure(IV.show(String(c)), 12)))), H = T + cell * nr + bot;
     let s = "";
     o.rows.forEach((r, i) => {
-      s += `<text class="lab" x="${L - 8}" y="${T + cell * i + cell / 2 + 4}" text-anchor="end" font-size="12">${FD.esc(IV.show(String(r)))}</text>`;
+      s += `<text class="${o.tokenRows ? "lab tok" : "lab"}" x="${L - 8}" y="${T + cell * i + cell / 2 + 4}" text-anchor="end" font-size="12">${o.tokenRows ? IV.tokSvg(r) : FD.esc(String(r))}</text>`;
       o.cols.forEach((c, j) => {
         if (o.mask && o.mask(i, j)) return;
         const v = o.values[i][j]; if (v == null) return;
         s += `<rect x="${L + cell * j + 0.5}" y="${T + cell * i + 0.5}" width="${cell - 1}" height="${cell - 1}" fill="${IV.tint(v, scale, signed, 90)}" tabindex="0" data-tip="${FD.esc(`${o.rowLabel || "Row"} ${IV.show(String(r))}, ${o.colLabel || "column"} ${IV.show(String(c))}: ${IV.f2(v)}`)}"/>`;
       });
     });
-    o.cols.forEach((c, j) => { const x = L + cell * j + cell / 2; s += `<text class="lab" transform="translate(${x + 4} ${T + cell * nr + 8}) rotate(-60)" text-anchor="end" font-size="12">${FD.esc(IV.show(String(c)))}</text>`; });
+    o.cols.forEach((c, j) => { const x = L + cell * j + cell / 2; s += `<text class="${o.tokenCols !== false ? "lab tok" : "lab"}" transform="translate(${x + 4} ${T + cell * nr + 8}) rotate(-60)" text-anchor="end" font-size="12">${o.tokenCols !== false ? IV.tokSvg(c) : FD.esc(String(c))}</text>`; });
     if (o.rowLabel) s += `<text x="0" y="${T - 4}" font-size="12">${FD.esc(o.rowLabel)} ↓</text>`;
     if (o.colLabel) s += `<text x="${W - 8}" y="${H - 2}" text-anchor="end" font-size="12">${FD.esc(o.colLabel)} →</text>`;
     return FD.svg(W, H, o.label || "Heatmap", s) + keyHtml;
   });
 }
 
-// The logit lens: the model's top next-token prediction read from each layer at each position,
-// with the cell shaded by that prediction's probability. cells[layer][position] = [token, p].
-function logitLens(el, o) {
+// A lens over the residual stream (the logit lens, the J-lens or any tuned lens): what each layer is poised to
+// say at each token position. top[l][p] is that cell's readout, [[token, probability], ...] sorted best first.
+// The grid shows each cell's top token, with the final layer at the top and the prompt along the bottom, so it
+// reads like the residual stream flowing upward. Shading shows the top token's probability, or the rank of a
+// pinned token (darker is a better rank, on a log scale). Selecting a cell shows its full readout; pinning a
+// token from it tracks that token's rank through the layers at the selected position.
+//   lensExplorer(el, { tokens, layers, top, pins, select: [layerIndex, position], layerLabel, lens })
+//   logitLens(el, same options): the grid alone, without the panels underneath.
+function lensExplorer(el, o) {
   el.setAttribute("data-viz", "");
-  el.innerHTML = `<div class="tablewrap"><table class="iv-lens"><thead><tr><th>Layer</th>${o.positions.map(p => `<th>${FD.esc(IV.show(p))}</th>`).join("")}</tr></thead><tbody>${o.layers.map((l, i) => `<tr><th>${l}</th>${o.cells[i].map(([t, p], j) => `<td tabindex="0" style="background:${IV.tint(p, 1, false, 62)}" data-tip="${FD.esc(`Layer ${l}, after ${JSON.stringify(o.positions[j])}: ${JSON.stringify(t)} at ${(p * 100).toFixed(0)}%`)}">${FD.esc(IV.show(t))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>${IV.key(1, false, "Probability of the top prediction")}`;
+  const NL = o.layers.length, NP = o.tokens.length, K = o.top[0][0].length, lens = o.lens || "lens";
+  const st = { sel: o.select || [NL - 1, NP - 1], pins: [], slot: {}, shade: "prob" };
+  const pin = t => { if (st.pins.includes(t)) { st.pins = st.pins.filter(x => x !== t); if (st.shade === t) st.shade = st.pins[0] || "prob"; } else { st.pins.push(t); st.slot[t] = st.slot[t] || (Object.keys(st.slot).length % 8) + 1; st.shade = t; } };
+  (o.pins || []).forEach(pin);
+  const rankOf = (t, l, p) => { const i = o.top[l][p].findIndex(([x]) => x === t); return i < 0 ? null : i + 1; };
+  const rankTint = r => r == null ? "transparent" : IV.tint(1 - Math.log(r) / Math.log(K + 1), 1, false, 62);
+  const q = t => FD.esc(JSON.stringify(t));
+  const pct = v => v >= 0.1 ? `${(v * 100).toFixed(0)}%` : v >= 0.001 ? `${(v * 100).toFixed(1)}%` : "<0.1%";
+  const lab = l => `${o.layerLabel || "Layer"} ${o.layers[l]}`;
+
+  const grid = () => {
+    const rows = [...Array(NL).keys()].reverse().map(l => `<tr><th scope="row">${o.layers[l]}</th>${o.tokens.map((_, p) => {
+      const [t, pr] = o.top[l][p][0], r = st.shade === "prob" ? null : rankOf(st.shade, l, p), sel = st.sel[0] === l && st.sel[1] === p;
+      const bg = st.shade === "prob" ? IV.tint(pr, 1, false, 62) : rankTint(r);
+      const tip = `${lab(l)}, after ${JSON.stringify(o.tokens[p])}: ${o.top[l][p].slice(0, 5).map(([x, v]) => `${JSON.stringify(x)} ${pct(v)}`).join(", ")}${st.shade !== "prob" ? `. ${JSON.stringify(st.shade)} is ${r ? "rank " + r : "not in the top " + K}` : ""}`;
+      return `<td class="${sel ? "lx-sel" : ""}" tabindex="${sel ? 0 : -1}" data-l="${l}" data-p="${p}" style="background:${bg}" data-tip="${FD.esc(tip)}">${IV.tok(t)}</td>`;
+    }).join("")}</tr>`).join("");
+    return `<div class="tablewrap"><table class="lx-grid" style="min-width:${52 + NP * 84}px"><colgroup><col class="lx-lcol">${o.tokens.map(() => "<col>").join("")}</colgroup>`
+      + `<tbody>${rows}</tbody><tfoot><tr><th scope="col" class="lx-corner">${FD.esc(o.layerLabel || "Layer")}</th>${o.tokens.map((t, p) => `<th scope="col" class="${st.sel[1] === p ? "lx-cur" : ""}">${IV.tok(t)}</th>`).join("")}</tr></tfoot></table></div>`;
+  };
+  const shadeCtl = () => `<div class="lx-ctl"><label>Shading<select class="lx-shade">${[["prob", "Probability of the top token"], ...st.pins.map(t => [t, `Rank of ${JSON.stringify(t)}`])].map(([v, n]) => `<option value="${FD.esc(v)}"${st.shade === v ? " selected" : ""}>${FD.esc(n)}</option>`).join("")}</select></label>`
+    + `<div class="lx-key">${st.shade === "prob" ? IV.key(1, false, "Probability") : `<div class="iv-key"><span class="iv-key-steps">${[1, 2, 5, 10, K].map(r => `<i style="background:${rankTint(r)}"></i>`).join("")}<i style="background:transparent"></i></span><span class="iv-key-labels"><span>rank 1</span><span>${K}</span><span>not in top ${K}</span></span></div>`}</div></div>`;
+  const readout = () => {
+    const [l, p] = st.sel, list = o.top[l][p].slice(0, 10);
+    return `<div class="lx-panel"><h3>${FD.esc(lab(l))}, after ${q(o.tokens[p])}</h3><ol class="lx-read">${list.map(([t, v], i) => `<li><span class="lx-rank">${i + 1}</span><button type="button" class="lx-tok${st.pins.includes(t) ? " lx-pinned" : ""}" data-tok="${FD.esc(t)}" aria-pressed="${st.pins.includes(t)}" title="${st.pins.includes(t) ? "Unpin" : "Pin to track its rank"}"><span class="lx-bar" style="width:${(v * 100).toFixed(1)}%"></span>${st.pins.includes(t) ? `<span class="sw" style="--c: var(--s${st.slot[t]})"></span>` : ""}<span class="lx-t">${IV.tok(t)}</span></button><span class="lx-p">${pct(v)}</span></li>`).join("")}</ol><p class="lx-hint">Select a token to pin it and track its rank.</p></div>`;
+  };
+  const trajectory = () => {
+    const p = st.sel[1];
+    if (!st.pins.length) return `<div class="lx-panel"><h3>Rank by layer, after ${q(o.tokens[p])}</h3><p class="lx-hint">Pinned tokens appear here.</p></div>`;
+    return `<div class="lx-panel"><h3>Rank by layer, after ${q(o.tokens[p])}</h3><div class="lx-traj"></div><ul class="lx-pins">${st.pins.map(t => `<li><span class="sw" style="--c: var(--s${st.slot[t]})">${IV.tok(t)}</span><button type="button" class="lx-unpin" data-tok="${FD.esc(t)}">Unpin</button></li>`).join("")}</ul></div>`;
+  };
+  const drawTraj = () => {
+    const slot = el.querySelector(".lx-traj"); if (!slot) return; delete slot.dataset.w;
+    FD.draw(slot, W0 => {
+      const W = Math.min(W0, 520), Lm = 40, R = 16, T = 22, PH = 180, H = T + PH + 40, p = st.sel[1];
+      const X = l => Lm + (W - Lm - R) * l / Math.max(1, NL - 1), Y = r => T + PH * Math.log(r) / Math.log(K + 1), Yout = T + PH;
+      let s = "";
+      [1, 2, 5, 10, 20, 50].filter(r => r < K).forEach(r => { s += `<line class="grid" x1="${Lm}" x2="${W - R}" y1="${Y(r)}" y2="${Y(r)}"/><text x="${Lm - 8}" y="${Y(r) + 4}" text-anchor="end" font-size="12">${r}</text>`; });
+      s += `<text x="${Lm - 8}" y="${Yout + 4}" text-anchor="end" font-size="12">>${K}</text>`;
+      const every = Math.ceil(NL / 6);
+      o.layers.forEach((lv, l) => { if (l % every === 0 || l === NL - 1) s += `<text x="${X(l)}" y="${T + PH + 18}" text-anchor="middle" font-size="12">${lv}</text>`; });
+      s += `<text x="${(Lm + W - R) / 2}" y="${H - 4}" text-anchor="middle" font-size="12">${FD.esc(o.layerLabel || "Layer")}</text><text x="${Lm - 8}" y="${T - 10}" text-anchor="end" font-size="12">Rank</text>`;
+      s += `<line class="ref" x1="${X(st.sel[0])}" x2="${X(st.sel[0])}" y1="${T}" y2="${T + PH}"/>`;
+      st.pins.forEach(t => {
+        const c = `var(--s${st.slot[t]})`, pts = o.layers.map((_, l) => { const r = rankOf(t, l, p); return [X(l), r ? Y(r) : Yout, r]; });
+        s += `<polyline fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" points="${pts.map(([x, y]) => x + "," + y).join(" ")}"/>`;
+        pts.forEach(([x, y, r], l) => { s += `<circle cx="${x}" cy="${y}" r="${l === st.sel[0] ? 4.5 : 2.5}" fill="${c}"/>` + FD.hit(x, y, `${JSON.stringify(t)}, ${lab(l)}: ${r ? "rank " + r : "not in the top " + K}`, 8); });
+      });
+      return FD.svg(W, H, `Rank by layer of the pinned tokens`, s);
+    });
+  };
+  const render = () => {
+    el.innerHTML = shadeCtl() + grid() + (o.gridOnly ? "" : `<div class="lx-detail">${readout()}${trajectory()}</div>`);
+    if (!o.gridOnly) drawTraj();
+  };
+  const select = (l, p, focus) => { st.sel = [Math.max(0, Math.min(NL - 1, l)), Math.max(0, Math.min(NP - 1, p))]; render(); if (focus) el.querySelector(".lx-sel")?.focus(); };
+  el.addEventListener("click", e => {
+    const td = e.target.closest(".lx-grid td"); if (td) return select(+td.dataset.l, +td.dataset.p, true);
+    const b = e.target.closest("[data-tok]"); if (b) { pin(b.dataset.tok); render(); }
+  });
+  el.addEventListener("change", e => { if (e.target.matches(".lx-shade")) { st.shade = e.target.value; render(); el.querySelector(".lx-shade").focus(); } });
+  el.addEventListener("keydown", e => {
+    if (!e.target.closest(".lx-grid td")) return;
+    const d = { ArrowUp: [1, 0], ArrowDown: [-1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+    if (d) { e.preventDefault(); select(st.sel[0] + d[0], st.sel[1] + d[1], true); }
+  });
+  render();
 }
+function logitLens(el, o) { lensExplorer(el, { ...o, gridOnly: true }); }
 
 // An attribution or circuit graph, laid out in columns from inputs on the left to outputs on the right.
 // columns: [{ label, nodes: [{ id, label, note }] }], edges: [{ from, to, w }] with w signed.

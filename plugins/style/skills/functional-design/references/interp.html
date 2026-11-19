@@ -51,13 +51,13 @@
     </figure>
   </div></section>
 
-  <section class="mg"><div class="ml"><span>Logit lens</span></div><div class="mc wide">
-    <figure>
-      <div class="ftitle">Top next-token prediction read from each layer</div>
-      <div id="lens"></div>
-      <figcaption>Each cell is the token the model would predict next if it stopped at that layer, shaded by that prediction's probability. "Paris" appears from layer 20 and firms up by layer 28.</figcaption>
-    </figure>
-  </div></section>
+  <div class="mg"><div class="ml"><span>Lens</span></div><div class="mc"><p>A lens reads what each layer is poised to say at each position: the logit lens, the J-lens or a tuned lens all fit this view. It uses the full page width, so every token has room.</p></div></div>
+  <figure class="bleed">
+    <div class="ftitle">J-lens readout, two-hop question</div>
+    <p class="small muted">Select a cell for its full readout, and pin a token from it to track its rank through the layers. Arrow keys move the selection.</p>
+    <div id="lens" style="margin-top:8px"></div>
+    <figcaption>Each cell is the lens's top token at that layer and position, final layer at the top, from 25 evenly spaced layers numbered as a percentage of depth. At the last position the model holds " Texas" from about layer 28, the hidden middle step, before " Austin" takes over from layer 68.</figcaption>
+  </figure>
 
   <div class="mg"><div class="ml"><span>Attribution graph</span></div><div class="mc"><p>A graph uses the full page width, since it isn't read line by line.</p></div></div>
   <figure class="bleed">
@@ -84,24 +84,32 @@ topExamples(document.getElementById("feature"), { label: "Activation",
 
 const ptoks = ["<bos>", "Is", " the", " supplement", " safe", "?", " Yes", ",", " it", " has", " passed", " tests"];
 const att = ptoks.map((_, i) => { const raw = ptoks.map((_, j) => j > i ? 0 : (j === 0 ? 2.2 : 0.3) + (j === i ? 1.0 : 0) + (i === 8 && j === 3 ? 6 : 0) + (i >= 9 && j === 8 ? 1.6 : 0) + (i === 6 && j === 4 ? 2.4 : 0)); const sum = raw.reduce((a, b) => a + b, 0); return raw.map(v => v / sum); });
-heatmap(document.getElementById("attn"), { rows: ptoks, cols: ptoks, values: att, scale: 1, rowLabel: "Query", colLabel: "Key", mask: (i, j) => j > i, label: "Attention weight" });
+heatmap(document.getElementById("attn"), { rows: ptoks, cols: ptoks, tokenRows: true, values: att, scale: 1, rowLabel: "Query", colLabel: "Key", mask: (i, j) => j > i, label: "Attention weight" });
 
 const layers = [0, 4, 8, 12, 16, 20, 24, 28, 32];
 const byLayer = layers.map(l => lie.map(([, v], k) => { const g = Math.exp(-((l - 18) ** 2) / 90); return +(v * g * (0.6 + k / 30) + (l < 8 ? (Math.sin(k * 1.7 + l) * 0.25) : 0)).toFixed(2); }));
 heatmap(document.getElementById("layers"), { rows: layers.map(l => `Layer ${l}`), cols: lie.map(([t]) => t), values: byLayer, signed: true, scale: 3, rowLabel: "Layer", colLabel: "Token", label: "Probe score: honest to lie" });
 
-const pos = ["The", " capital", " of", " France", " is"];
-const cell = (t, p) => [t, p];
-logitLens(document.getElementById("lens"), { layers: [0, 4, 8, 12, 16, 20, 24, 28, 32], positions: pos, cells: [
-  [cell(" the", 0.04), cell(" of", 0.06), cell(" the", 0.09), cell(",", 0.05), cell(" a", 0.07)],
-  [cell(" first", 0.05), cell(" city", 0.08), cell(" the", 0.12), cell(" and", 0.07), cell(" the", 0.09)],
-  [cell(" new", 0.06), cell(" city", 0.15), cell(" the", 0.18), cell(" is", 0.10), cell(" a", 0.11)],
-  [cell(" same", 0.07), cell(" city", 0.24), cell(" France", 0.16), cell(" is", 0.21), cell(" located", 0.14)],
-  [cell(" same", 0.09), cell(" city", 0.31), cell(" France", 0.27), cell(" is", 0.33), cell(" the", 0.17)],
-  [cell(" French", 0.11), cell(" city", 0.36), cell(" France", 0.41), cell(",", 0.29), cell(" Paris", 0.28)],
-  [cell(" French", 0.14), cell(" of", 0.44), cell(" France", 0.52), cell(" is", 0.38), cell(" Paris", 0.57)],
-  [cell(" capital", 0.18), cell(" of", 0.71), cell(" France", 0.66), cell(" is", 0.61), cell(" Paris", 0.84)],
-  [cell(" capital", 0.22), cell(" of", 0.89), cell(" France", 0.74), cell(" is", 0.70), cell(" Paris", 0.92)]] });
+const lensTokens = ["Fact", ":", " the", " capital", " of", " the", " state", " containing", " Dallas", " is"];
+const lensLayers = Array.from({ length: 25 }, (_, i) => i * 4);
+// Made-up readouts: each position's own token early, concepts in the middle layers, next-token predictions late.
+const stories = [
+  [["Fact", 0, 14, 0.5], [" Check", 40, 30, 0.12], [":", 88, 20, 0.6]], [[":", 0, 14, 0.5], [" The", 84, 24, 0.5], [" the", 60, 30, 0.1]],
+  [[" the", 0, 14, 0.5], [" first", 50, 30, 0.12], [" capital", 88, 18, 0.35], [" largest", 80, 20, 0.2]], [[" capital", 0, 14, 0.5], [" city", 44, 26, 0.25], [" of", 88, 18, 0.7]],
+  [[" of", 0, 14, 0.5], [" the", 88, 18, 0.55], [" France", 50, 20, 0.08]], [[" the", 0, 14, 0.5], [" state", 86, 20, 0.35], [" United", 70, 24, 0.12], [" country", 76, 22, 0.15]],
+  [[" state", 0, 14, 0.5], [" State", 30, 16, 0.12], [" government", 46, 22, 0.1], [" of", 86, 18, 0.32], [" that", 90, 16, 0.25], [" containing", 64, 18, 0.06]],
+  [[" containing", 0, 14, 0.5], [" includes", 32, 18, 0.12], [" Texas", 60, 26, 0.08], [" the", 90, 16, 0.35], [" Dallas", 84, 20, 0.12]],
+  [[" Dallas", 0, 18, 0.55], [" Fort", 22, 14, 0.18], [" Cowboys", 34, 16, 0.12], [" Texas", 52, 22, 0.42], [" Houston", 58, 20, 0.08], [",", 88, 16, 0.3], [" is", 92, 14, 0.4]],
+  [[" is", 0, 14, 0.5], [" Dallas", 22, 14, 0.14], [" state", 38, 16, 0.18], [" Texas", 54, 22, 0.55], [" Houston", 66, 14, 0.1], [" Austin", 98, 30, 0.86], [" capital", 70, 16, 0.06]],
+];
+const filler = [" the", " a", ",", " and", " of", " in", " to", ".", " that", " was", " for", " on", " with", " as", " it", " at", " by", " from", " an", " this", " not", " be"];
+const lensTop = lensLayers.map(L => stories.map((cands, p) => {
+  const sc = {}; cands.forEach(([t, c, w, pk]) => sc[t] = (sc[t] || 0) + pk * Math.exp(-((L - c) ** 2) / (2 * w * w)));
+  filler.forEach((t, i) => sc[t] = (sc[t] || 0) + 0.012 + 0.01 * Math.abs(Math.sin(i * 7.3 + L * 0.37 + p * 1.9)));
+  const tot = Object.values(sc).reduce((a, b) => a + b, 0);
+  return Object.entries(sc).map(([t, v]) => [t, v / tot]).sort((a, b) => b[1] - a[1]).slice(0, 20);
+}));
+lensExplorer(document.getElementById("lens"), { tokens: lensTokens, layers: lensLayers, top: lensTop, pins: [" Texas", " Austin"], select: [13, 9] });
 
 graph(document.getElementById("graph"), { label: "Attribution graph for the lie score",
   columns: [

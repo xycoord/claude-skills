@@ -84,12 +84,13 @@ A diagram shows flow, and a table makes comparisons, so a page can need both for
 
 ## Views of model internals
 
-My research is AI safety work on what happens inside models, and its most useful views often aren't standard charts. `references/interp.js` draws the established ones, and `references/interp.html` shows each in use: values over text (token highlights), a feature's top-activating examples, heatmaps over two axes (attention, or a probe's score by layer and token), the logit lens, and attribution graphs. I also expect to need views nobody has designed yet, so these principles matter more than the list.
+My research is AI safety work on what happens inside models, and its most useful views often aren't standard charts. `references/interp.js` draws the established ones, and `references/interp.html` shows each in use: values over text (token highlights), a feature's top-activating examples, heatmaps over two axes (attention, or a probe's score by layer and token), a lens explorer for the logit lens, the J-lens or any tuned lens (a grid of each layer's top token at each position, the full readout for a selected cell, and pinned tokens' ranks through the layers), and attribution graphs. I also expect to need views nobody has designed yet, so these principles matter more than the list.
 
 - Say what the unit is, whether a token, a feature, a head or a layer, because the unit decides the layout.
 - Encode a value by its kind. A signed value, for or against something, runs from blue through the page colour to red, so zero is nothing. A magnitude runs from the page colour to violet, a different hue, so it's never mistaken for one side of a signed value. Every view carries its key, and shows each exact value on hover or focus.
 - Views shown together share one scale, because colours on different scales can't be compared.
 - Over text, a value is a pale tint behind ink-coloured words, so the text stays readable.
+- Set a token in monospace when it's shown as a unit and its exact string matters: a lens cell, a readout list, an axis label or a pinned token. There, " Paris" and "Paris" are different tokens, so a faint mark shows each leading or trailing space. Keep running text that's read for meaning, such as a response with token highlights, in the body font, where the highlights show the token edges. `IV.tok()` in `interp.js` and the `tok` class do the first.
 - Every mark leads back to the raw data behind it, one step away.
 - Here colour is data, not decoration, so the rule against tinted backgrounds doesn't apply. Mark the view's container `data-viz`, which the check script exempts.
 - Build a new kind of view as a prototype on real data, and iterate on it with me. Only once it has proved useful does it join the kit.
