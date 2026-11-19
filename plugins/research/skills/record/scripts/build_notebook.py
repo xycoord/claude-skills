@@ -460,8 +460,8 @@ def load(root: Path, p: Problems):
             else:
                 c.text(pr, ["text", "how"], "prediction ")
                 c.date(pr, "written", "prediction ")
-                if pr.get("held") not in (None, True, False):
-                    p.error(readme, f"prediction held {pr['held']!r} should be true or false")
+                if pr.get("held") not in (None, True, False, "partly"):
+                    p.error(readme, f"prediction held {pr['held']!r} should be true, false or partly")
                 if e.get("mode") == "explore":
                     p.warn(readme, "has a prediction, but predictions belong to test mode")
         for i, s in enumerate(c.mappings(e, "since", ""), start=1):
@@ -1048,6 +1048,7 @@ function nextList(t) {
     let a;
     if (q.state === "running") { const e = EXP[q.experiment]; a = `${e ? `Running as ${expLink(e.id)} since ${day(ran(e))}.` : "Running."}${q.settles ? " " + q.settles : ""}`; }
     else if (q.state === "parked") a = `Parked: ${q.parked || "no reason given"}.`;
+    else if (EXP[q.experiment] && EXP[q.experiment].status === "planned") { const e = EXP[q.experiment]; a = `Planned as ${expLink(e.id)} on ${day(e.date)}.${q.settles ? " " + q.settles : ""}`; }
     else a = step(q);
     if (q.lead) a += ` <span class="muted">A lead from ${q.from ? expLink(q.from) : "looking at data"}, not yet tested.</span>`;
     return `<li id="${esc(q.id)}"${q.state === "parked" ? ` class="dim"` : ""}><span class="t">${q.question}</span><p class="a">${a}</p></li>`;
@@ -1069,14 +1070,14 @@ function historyList(t) {
 function viewExperiment(e) {
   const t = THR[e.thread], explore = e.mode === "explore";
   const when = e.status === "planned" ? `Planned ${day(e.date)}` : e.status === "running" ? `Running since ${day(ran(e))}` : `Run ${day(ran(e))}`;
-  let h = head(up("#experiments", "Experiments"), e.question, `${when}${t ? `, for <a href="#t-${t.id}">${esc(t.title)}</a>` : ""}.`);
+  let h = head(up("#experiments", "Experiments"), e.question, `${when}${t ? `, for <a href="#t-${t.id}">${esc(t.title)}</a>` : ""}${t && /[?.!]$/.test(t.title) ? "" : "."}`);
   if (e.since.length) h += sec("Since then", `<ul class="log">${e.since.map(s => `<li><span class="d">${day(s.date)}</span><span>${s.via ? `${expLink(s.via, cap(esc(shortOf(EXP[s.via]))))}: ` : ""}${s.line}</span></li>`).join("")}</ul>`);
   const opening = e.answer || (e.status === "planned" ? "Not run yet." : e.status === "running" ? "<b>Not yet.</b> Still running." : "");
   const ml = e.status === "retracted" ? two(explore ? "What was seen" : "Answer", `<span class="crit">Retracted</span>`) : e.status === "abandoned" ? two(explore ? "What was seen" : "Answer", "Abandoned") : explore ? "What was seen" : "Answer";
   if (opening) h += sec(ml, `<p class="lead">${opening}</p>`);
   const S = Object.fromEntries(e.sections.map(s => [s.label, s]));
   const P = e.prediction;
-  const pred = P && P.text ? `<p>The prediction, written ${day(P.written)} before the run: ${P.text}${P.held === true ? ` <b>It held:</b> ${P.how || ""}.` : P.held === false ? ` <b>It didn't hold:</b> ${P.how || ""}.` : ""}</p>` : "";
+  const pred = P && P.text ? `<p>The prediction, written ${day(P.written)} before the run: ${P.text}${P.held === true ? ` <b>It held:</b> ${P.how || ""}.` : P.held === false ? ` <b>It didn't hold:</b> ${P.how || ""}.` : P.held === "partly" ? ` <b>It partly held:</b> ${P.how || ""}.` : ""}</p>` : "";
   const done = new Set();
   const body = (label, extra = "") => {
     const s = S[label]; done.add(label);
@@ -1122,8 +1123,9 @@ function viewNext() {
   const tline = id => THR[id] ? `<p class="nb-tl">${esc(THR[id].title)}</p>` : "";
   const qrow = q => {
     const e = EXP[q.experiment];
-    const a = q.state === "running" ? `${e ? `Running as ${esc(shortOf(e))} since ${day(ran(e))}.` : "Running."}${q.settles ? " " + q.settles : ""}` : q.state === "parked" ? `Parked: ${q.parked || ""}.` : step(q);
-    return `<li${q.state === "parked" ? ` class="dim"` : ""}><a class="item" href="#${esc(q.state === "running" && e ? e.id : q.id)}"><span class="t">${q.question}</span><p class="a">${a}</p>${tline(q.thread)}</a></li>`;
+    const planned = q.state === "open" && e && e.status === "planned";
+    const a = q.state === "running" ? `${e ? `Running as ${esc(shortOf(e))} since ${day(ran(e))}.` : "Running."}${q.settles ? " " + q.settles : ""}` : q.state === "parked" ? `Parked: ${q.parked || ""}.` : planned ? `Planned as ${esc(shortOf(e))} on ${day(e.date)}.${q.settles ? " " + q.settles : ""}` : step(q);
+    return `<li${q.state === "parked" ? ` class="dim"` : ""}><a class="item" href="#${esc((q.state === "running" || planned) && e ? e.id : q.id)}"><span class="t">${q.question}</span><p class="a">${a}</p>${tline(q.thread)}</a></li>`;
   };
   const erow = e => `<li><a class="item" href="#${esc(e.id)}"><span class="t">${e.question}</span><p class="a">${e.status === "running" ? `Running since ${day(ran(e))}.` : `Planned ${day(e.date)}.`}</p>${tline(e.thread)}</a></li>`;
   const run = [...items.running.map(qrow), ...loose.filter(e => e.status === "running").map(erow)];

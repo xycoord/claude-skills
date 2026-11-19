@@ -67,7 +67,7 @@ next:                                             # what's running, open leads a
     action: Run the readout comparison on Qwen 2.5 7B.
     cost_gpu_min: 50                              # optional
     state: running                                # open | running | parked (open if left out)
-    experiment: E-2026-11-17-qwen-agg             # when running
+    experiment: E-2026-11-17-qwen-agg             # once planned (state stays open until it runs)
     settles: No gap there would narrow the finding to Llama.   # optional
     lead: false                                   # true if it came from exploration (an untested pattern)
     from: E-2026-11-18-false-alarms               # optional: the experiment a lead came from; it's listed under that page's Leads
@@ -98,7 +98,7 @@ answer: Yes. Macro-F1 0.79 (0.77–0.81) for last-token vs 0.58 (0.55–0.61) fo
 prediction:                                       # test mode only, written before the run
   text: Last-token beats mean-pool by at least 0.05 macro-F1.
   written: 2026-11-11
-  held: true                                      # after the run: true | false
+  held: true                                      # after the run: true | false | partly
   how: last-token beat mean-pool by 0.21 macro-F1
 commit: a1b2c3d
 pr: 12                                            # ai-research PR number, optional

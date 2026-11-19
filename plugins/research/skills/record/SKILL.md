@@ -71,10 +71,11 @@ miss.
 
 ## Publishing
 
-Publish from `main` only, after a change to the notebook's files merges, so
-the page always matches `main`. The session that owns the PR publishes: it's
-subscribed to the PR, so the merge wakes it. If you merge or push to `main`
-yourself, publish straight after.
+Publish from `main` only, whenever a change to the notebook's files reaches
+it, so the page always matches `main`. After a merge, the session that owns
+the PR publishes: it's subscribed to the PR, so the merge wakes it. After an
+experiment's plan or status is pushed straight to `main` (the `experiment`
+skill), the session that pushed it publishes straight after.
 
 1. Pull `main` in the research repo.
 2. Build with `--publish`: `uv run <this skill>/scripts/build_notebook.py <repo> -o <scratchpad>/notebook.html --publish`.
