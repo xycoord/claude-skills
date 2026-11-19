@@ -1,0 +1,5 @@
+{ "view": "dotChart", "title": "Share of honest answers flagged, by slice", "caption": "5,300 honest answers, seed 0. Each row is one slice; the dashed line is the rate across all honest answers.",
+  "options": { "metric": "Flagged as lies", "from": 0, "to": 0.2, "percent": true, "digits": 1, "lines": [{"v": 0.04, "label": "all"}], "keepOrder": true,
+    "rows": [{"label": "Refusals", "v": 0.17, "c": 2}, {"label": "Not refusals", "v": 0.018, "c": 1},
+             {"label": "Medical topics", "v": 0.061, "c": 4}, {"label": "Other topics", "v": 0.034, "c": 4},
+             {"label": "Longest quartile", "v": 0.043, "c": 7}, {"label": "Shortest quartile", "v": 0.038, "c": 7}] } }
