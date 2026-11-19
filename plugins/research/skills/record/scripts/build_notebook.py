@@ -1077,7 +1077,7 @@ function viewExperiment(e) {
   if (opening) h += sec(ml, `<p class="lead">${opening}</p>`);
   const S = Object.fromEntries(e.sections.map(s => [s.label, s]));
   const P = e.prediction;
-  const pred = P && P.text ? `<p>The prediction, written ${day(P.written)} before the run: ${P.text}${P.held === true ? ` <b>It held:</b> ${P.how || ""}.` : P.held === false ? ` <b>It didn't hold:</b> ${P.how || ""}.` : P.held === "partly" ? ` <b>It partly held:</b> ${P.how || ""}.` : ""}</p>` : "";
+  const pred = P && P.text ? `<p>The prediction, written ${day(P.written)} before the run: ${P.text}${P.held === true ? ` <b>It held:</b> ${P.how || ""}.` : P.held === false ? ` <b>It didn't hold:</b> ${P.how || ""}.` : P.held === "partly" ? ` <b>It partly held:</b> ${P.how || ""}.` : P.how ? ` <b>The run couldn't tell:</b> ${P.how}.` : ""}</p>` : "";
   const done = new Set();
   const body = (label, extra = "") => {
     const s = S[label]; done.add(label);

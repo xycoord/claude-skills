@@ -98,7 +98,7 @@ answer: Yes. Macro-F1 0.79 (0.77–0.81) for last-token vs 0.58 (0.55–0.61) fo
 prediction:                                       # test mode only, written before the run
   text: Last-token beats mean-pool by at least 0.05 macro-F1.
   written: 2026-11-11
-  held: true                                      # after the run: true | false | partly
+  held: true                                      # after the run: true | false | partly (left out for No answer)
   how: last-token beat mean-pool by 0.21 macro-F1
 commit: a1b2c3d
 pr: 12                                            # ai-research PR number, optional
