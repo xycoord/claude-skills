@@ -52,7 +52,7 @@ Sections, labelled in the margin with plain words:
 7. **Anything the conclusion depends on is body text,** not a caption. A caption says how to read its figure, and sits at the first figure that needs it.
 8. **Numbers use the same precision for the same kind of figure everywhere,** show their spread when there are repeats (and say what the spread is), and give n when it's small enough to matter. Counts are numerals ("3 seeds").
 9. **Time-bound words** ("running", "now", "yet") carry a date or an ID, and are updated when the thing they point to lands.
-10. **One name per thing,** taken from the project's glossary: each experiment has one short name used in every sentence, and every comparison uses "vs".
+10. **One name per thing,** taken from the project's glossary: each experiment has one short name used in every sentence, and every comparison uses "vs". A model's token is written in monospace rather than in quotes, with its leading space kept inside (` Austin`), so it reads as a token rather than a word.
 11. **Avoid** "we" in a method, and "partly", "something", "plausibly", "clean", "as expected", and "about" when the exact number is known.
 12. **Thread titles are specific questions** that name their subject and make sense alone. A finding or lead goes in the thread whose question it bears on; if none fits, it starts one.
 13. **A history line** goes under the run that caused the change of belief, as "status change: gist", with the gist in 8 words or fewer. The run's answer beside it carries the numbers.
