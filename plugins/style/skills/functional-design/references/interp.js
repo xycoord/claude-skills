@@ -22,12 +22,9 @@ const IV = (() => {
   const f2 = v => (Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2));
   const show = s => s.replace(/\n/g, "↵").replace(/^ /, " ").replace(/ $/, " ");
   const run = s => s.replace(/\n/g, "↵\n");
-  // A token shown as a unit (a lens cell, a readout, an axis label) is set in monospace, with a faint mark for a
-  // leading or trailing space, because there its exact string matters: " Paris" and "Paris" are different tokens.
-  const tok = t => { const m = String(t).match(/^( *)([\s\S]*?)( *)$/), ws = n => n ? `<span class="ws">${"␣".repeat(n.length)}</span>` : "";
-    return `<span class="tok">${ws(m[1])}${FD.esc(m[2].replace(/\n/g, "↵"))}${ws(m[3])}</span>`; };
-  const tokSvg = t => { const m = String(t).match(/^( *)([\s\S]*?)( *)$/), ws = n => n ? `<tspan class="ws">${"␣".repeat(n.length)}</tspan>` : "";
-    return `${ws(m[1])}${FD.esc(m[2].replace(/\n/g, "↵"))}${ws(m[3])}`; };  // in running text a token wraps normally; show() keeps edge spaces visible for labels
+  // Monospace marks a token as a token. Its edge spaces are kept, without visible marks, which read as noise.
+  const tok = t => `<span class="tok">${FD.esc(String(t).replace(/\n/g, "↵"))}</span>`;
+  const tokSvg = t => FD.esc(String(t).replace(/\n/g, "↵"));
   // A stepped key, rather than a gradient, so each step is a colour the view actually uses.
   const key = (scale, signed, label) => {
     const steps = signed ? [-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1] : [0, 0.25, 0.5, 0.75, 1];
@@ -122,16 +119,16 @@ function lensExplorer(el, o) {
     return `<div class="tablewrap"><table class="lx-grid" style="min-width:${52 + NP * 84}px"><colgroup><col class="lx-lcol">${o.tokens.map(() => "<col>").join("")}</colgroup>`
       + `<tbody>${rows}</tbody><tfoot><tr><th scope="col" class="lx-corner">${FD.esc(o.layerLabel || "Layer")}</th>${o.tokens.map((t, p) => `<th scope="col" class="${st.sel[1] === p ? "lx-cur" : ""}">${IV.tok(t)}</th>`).join("")}</tr></tfoot></table></div>`;
   };
-  const shadeCtl = () => `<div class="lx-ctl"><label>Shading<select class="lx-shade">${[["prob", "Probability of the top token"], ...st.pins.map(t => [t, `Rank of ${JSON.stringify(t)}`])].map(([v, n]) => `<option value="${FD.esc(v)}"${st.shade === v ? " selected" : ""}>${FD.esc(n)}</option>`).join("")}</select></label>`
+  const shadeCtl = () => `<div class="lx-ctl"><label>Shading<select class="lx-shade">${[["prob", "Probability of the top token"], ...st.pins.map(t => [t, `Rank of ${t.trim() || JSON.stringify(t)}`])].map(([v, n]) => `<option value="${FD.esc(v)}"${st.shade === v ? " selected" : ""}>${FD.esc(n)}</option>`).join("")}</select></label>`
     + `<div class="lx-key">${st.shade === "prob" ? IV.key(1, false, "Probability") : `<div class="iv-key"><span class="iv-key-steps">${[1, 2, 5, 10, K].map(r => `<i style="background:${rankTint(r)}"></i>`).join("")}<i style="background:transparent"></i></span><span class="iv-key-labels"><span>rank 1</span><span>${K}</span><span>not in top ${K}</span></span></div>`}</div></div>`;
   const readout = () => {
     const [l, p] = st.sel, list = o.top[l][p].slice(0, 10);
-    return `<div class="lx-panel"><h3>${FD.esc(lab(l))}, after ${q(o.tokens[p])}</h3><ol class="lx-read">${list.map(([t, v], i) => `<li><span class="lx-rank">${i + 1}</span><button type="button" class="lx-tok${st.pins.includes(t) ? " lx-pinned" : ""}" data-tok="${FD.esc(t)}" aria-pressed="${st.pins.includes(t)}" title="${st.pins.includes(t) ? "Unpin" : "Pin to track its rank"}"><span class="lx-bar" style="width:${(v * 100).toFixed(1)}%"></span>${st.pins.includes(t) ? `<span class="sw" style="--c: var(--s${st.slot[t]})"></span>` : ""}<span class="lx-t">${IV.tok(t)}</span></button><span class="lx-p">${pct(v)}</span></li>`).join("")}</ol><p class="lx-hint">Select a token to pin it and track its rank.</p></div>`;
+    return `<div class="lx-panel"><h3>${FD.esc(lab(l))}, after ${IV.tok(o.tokens[p])}</h3><ol class="lx-read">${list.map(([t, v], i) => `<li><span class="lx-rank">${i + 1}</span><button type="button" class="lx-tok${st.pins.includes(t) ? " lx-pinned" : ""}" data-tok="${FD.esc(t)}" aria-pressed="${st.pins.includes(t)}" title="${st.pins.includes(t) ? "Unpin" : "Pin to track its rank"}">${st.pins.includes(t) ? `<span class="sw" style="--c: var(--s${st.slot[t]})"></span>` : ""}<span class="lx-t">${IV.tok(t)}</span></button><span class="lx-barw" aria-hidden="true"><span class="lx-bar" style="width:${(v * 100).toFixed(1)}%"></span></span><span class="lx-p">${pct(v)}</span></li>`).join("")}</ol><p class="lx-hint">Select a token to pin it and track its rank.</p></div>`;
   };
   const trajectory = () => {
     const p = st.sel[1];
-    if (!st.pins.length) return `<div class="lx-panel"><h3>Rank by layer, after ${q(o.tokens[p])}</h3><p class="lx-hint">Pinned tokens appear here.</p></div>`;
-    return `<div class="lx-panel"><h3>Rank by layer, after ${q(o.tokens[p])}</h3><div class="lx-traj"></div><ul class="lx-pins">${st.pins.map(t => `<li><span class="sw" style="--c: var(--s${st.slot[t]})">${IV.tok(t)}</span><button type="button" class="lx-unpin" data-tok="${FD.esc(t)}">Unpin</button></li>`).join("")}</ul></div>`;
+    if (!st.pins.length) return `<div class="lx-panel"><h3>Rank by layer, after ${IV.tok(o.tokens[p])}</h3><p class="lx-hint">Pinned tokens appear here.</p></div>`;
+    return `<div class="lx-panel"><h3>Rank by layer, after ${IV.tok(o.tokens[p])}</h3><div class="lx-traj"></div><ul class="lx-pins">${st.pins.map(t => `<li><span class="sw" style="--c: var(--s${st.slot[t]})">${IV.tok(t)}</span><button type="button" class="lx-unpin" data-tok="${FD.esc(t)}">Unpin</button></li>`).join("")}</ul></div>`;
   };
   const drawTraj = () => {
     const slot = el.querySelector(".lx-traj"); if (!slot) return; delete slot.dataset.w;

@@ -15,7 +15,7 @@
 <main class="wrap page">
   <div class="mg"><div class="ml"></div><div class="mc">
     <h1>Model internals views</h1>
-    <p class="lead" style="margin-top:12px">The standard views from interpretability work, drawn in the functional-design style. Colour here encodes values, so red always means toward "lie" and blue toward "honest", and darker always means more.</p>
+    <p class="lead" style="margin-top:12px">The standard views from interpretability work, drawn in the functional-design style. Colour here encodes values, so red always means toward lying and blue toward honesty, and darker always means more.</p>
   </div></div>
 
   <section class="mg"><div class="ml"><span>Token highlights</span></div><div class="mc">
@@ -39,7 +39,7 @@
     <figure>
       <div class="ftitle">Head 14.3: attention from each token to earlier tokens</div>
       <div id="attn"></div>
-      <figcaption>Each row is a token attending back to the tokens in its columns; each row sums to 1. Above the diagonal is empty because a token can't attend forward. "it" attends mostly to "supplement", which is how this head carries what "it" refers to.</figcaption>
+      <figcaption>Each row is a token attending back to the tokens in its columns; each row sums to 1. Above the diagonal is empty because a token can't attend forward. <span class="tok"> it</span> attends mostly to <span class="tok"> supplement</span>, which is how this head carries what "it" refers to.</figcaption>
     </figure>
   </div></section>
 
@@ -56,7 +56,7 @@
     <div class="ftitle">J-lens readout, two-hop question</div>
     <p class="small muted">Select a cell for its full readout, and pin a token from it to track its rank through the layers. Arrow keys move the selection.</p>
     <div id="lens" style="margin-top:8px"></div>
-    <figcaption>Each cell is the lens's top token at that layer and position, final layer at the top, from 25 evenly spaced layers numbered as a percentage of depth. At the last position the model holds " Texas" from about layer 28, the hidden middle step, before " Austin" takes over from layer 68.</figcaption>
+    <figcaption>Each cell is the lens's top token at that layer and position, final layer at the top, from 25 evenly spaced layers numbered as a percentage of depth. At the last position the model holds <span class="tok"> Texas</span> from about layer 28, the hidden middle step, before <span class="tok"> Austin</span> takes over from layer 68.</figcaption>
   </figure>
 
   <div class="mg"><div class="ml"><span>Attribution graph</span></div><div class="mc"><p>A graph uses the full page width, since it isn't read line by line.</p></div></div>

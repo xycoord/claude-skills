@@ -40,7 +40,7 @@ PROBE = r"""
       if (/[→↗›»]\s*$/.test(text) && el.closest("a, button")) add("arrow on a link or button", el);
       if (emoji.test(text)) add("emoji", el);
       const fg = rgb(s.color), bg = bgOf(el), L1 = lum(fg), L2 = lum(bg), ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
-      if (ratio < (size >= 24 || el.matches(".ws") ? 3 : 4.5)) add("low text contrast (under 4.5:1, or 3:1 at 24px and up and for space marks)", el, `${describe(el)} (${ratio.toFixed(2)}:1)`);
+      if (ratio < (size >= 24 ? 3 : 4.5)) add("low text contrast (under 4.5:1, or 3:1 at 24px and up)", el, `${describe(el)} (${ratio.toFixed(2)}:1)`);
     }
     if (s.boxShadow !== "none" && !control(el)) add("shadows", el);
     if (/gradient/.test(s.backgroundImage)) add("gradients", el);

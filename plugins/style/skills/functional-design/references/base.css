@@ -44,10 +44,8 @@ b, strong { font-weight: 600; }
 .nw { white-space: nowrap; }
 .id, code { font-family: var(--f-mono); font-size: max(13px, 0.88em); font-variant-ligatures: none; }  /* IDs, hashes, code, commands only */
 .id { white-space: nowrap; }
-/* A token shown as a unit, where its exact string matters; running text that's read for meaning stays in the body font. */
+/* Monospace marks a token as a token, in prose (instead of quotes) and in views. Running text read for meaning stays in the body font. */
 .tok { font-family: var(--f-mono); font-variant-ligatures: none; font-size: max(13px, 0.92em); white-space: pre; }
-.tok .ws, .chart .ws, .diagram .ws { color: var(--muted); fill: var(--muted); }
-[data-viz] td .tok .ws, [data-viz] .lx-tok .ws { color: var(--ink-2); }
 svg text.tok { font-family: var(--f-mono); font-variant-ligatures: none; }
 pre { font-family: var(--f-mono); font-size: 14px; font-variant-ligatures: none; overflow-x: auto; padding: 10px 0; border-block: 1px solid var(--line); }
 /* A colour key: a small dot before the name of a colour-coded thing, in tables, lists and diagram labels alike.
@@ -202,23 +200,26 @@ table.main th { font-size: 14px; }
 .lx-ctl .iv-key { margin-top: 0; padding-bottom: 8px; }
 table.lx-grid { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 2px; font-size: 13px; }
 .lx-grid col.lx-lcol { width: 52px; }
-.lx-grid td { height: 28px; padding: 0 4px; text-align: center; white-space: pre; overflow: hidden; text-overflow: ellipsis; border: 0; border-radius: 3px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.lx-grid td { height: 28px; line-height: 28px; vertical-align: middle; padding: 0 4px; text-align: center; white-space: pre; overflow: hidden; text-overflow: ellipsis; border: 0; border-radius: 3px; cursor: pointer; font-variant-numeric: tabular-nums; }
 .lx-grid td:hover { outline: 1px solid var(--ink-2); outline-offset: -1px; }
 .lx-grid td.lx-sel { outline: 2px solid var(--ink); outline-offset: -2px; font-weight: 600; }
-.lx-grid tbody th { padding: 0 10px 0 0; text-align: right; font-weight: 400; color: var(--muted); border: 0; font-variant-numeric: tabular-nums; }
+.lx-grid tbody th { height: 28px; line-height: 28px; vertical-align: middle; padding: 0 10px 0 0; text-align: right; font-weight: 400; color: var(--muted); border: 0; font-variant-numeric: tabular-nums; }
 .lx-grid tfoot th { padding: 8px 2px 0; text-align: center; font-weight: 500; font-size: 13px; color: var(--ink); white-space: pre; overflow: hidden; text-overflow: ellipsis; border: 0; border-top: 1px solid var(--line-2); }
 .lx-grid tfoot th.lx-cur { border-top: 2px solid var(--ink); padding-top: 7px; }
 .lx-grid tfoot th.lx-corner { text-align: right; padding-right: 10px; font-weight: 400; color: var(--muted); }
 .lx-detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; margin-top: 28px; }
 .lx-panel h3 { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
-.lx-read > li { display: grid; grid-template-columns: 24px minmax(0, 1fr) 52px; align-items: center; column-gap: 8px; }
+.lx-read > li { display: grid; grid-template-columns: 24px minmax(0, 1fr) minmax(60px, 140px) 52px; align-items: center; column-gap: 8px; min-height: 30px; line-height: 1; }
 .lx-read > li + li { margin-top: 2px; }
 .lx-rank { color: var(--muted); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
-.lx-tok { position: relative; display: flex; align-items: center; gap: 0; width: 100%; min-height: 28px; padding: 0 8px; font: inherit; font-size: 15px; color: var(--ink); background: none; border: 0; border-radius: 3px; text-align: left; cursor: pointer; white-space: pre; overflow: hidden; }
+.lx-tok { position: relative; display: flex; align-items: center; line-height: 1; gap: 0; width: 100%; min-height: 28px; padding: 0 8px; font: inherit; font-size: 15px; color: var(--ink); background: none; border: 0; border-radius: 3px; text-align: left; cursor: pointer; white-space: pre; overflow: hidden; }
 .lx-tok:hover .lx-t { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; text-decoration-color: var(--line-2); }
 .lx-tok.lx-pinned { font-weight: 600; }
-.lx-bar { position: absolute; left: 0; top: 3px; bottom: 3px; background: color-mix(in oklab, var(--seq) 22%, var(--bg)); border-radius: 2px; }
+/* The probability is a bar of its own, beside the token rather than behind it, so it can't read as a highlight on part of the token. */
+.lx-barw { height: 8px; background: var(--grid); border-radius: 2px; overflow: hidden; }
+.lx-bar { display: block; height: 100%; background: var(--seq); border-radius: 2px; }
 .lx-t, .lx-tok .sw { position: relative; }
+.lx-tok .sw::before { margin-right: 2px; }
 .lx-p { text-align: right; font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .lx-hint { font-size: 13px; color: var(--muted); margin-top: 8px; }
 .lx-pins { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-top: 6px; font-size: 14px; }
