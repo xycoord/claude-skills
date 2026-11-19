@@ -75,7 +75,8 @@ Publish from `main` only, whenever a change to the notebook's files reaches
 it, so the page always matches `main`. After a merge, the session that owns
 the PR publishes: it's subscribed to the PR, so the merge wakes it. After an
 experiment's plan or status is pushed straight to `main` (the `experiment`
-skill), the session that pushed it publishes straight after.
+skill), the session that pushed it publishes straight after. Several pushes
+within a few minutes of each other can share one publish after the last.
 
 1. Bring a checkout of `main` up to date: in the `experiment` skill's
    detached copy, `git fetch` and `git checkout --detach origin/main`; in a

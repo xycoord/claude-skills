@@ -156,9 +156,18 @@ glossary.
 
 **The prediction and the decision rule are frozen once anything has run on
 the experiment's data**, the tiny run included. Before that, the plan can be
-amended with a dated line at the end of `## Method`. Cost and timing can be
-updated after the tiny run. After the run, keep the plan, and say in the
-write-up where the run departed from it.
+amended. Each amendment is a dated line in the front matter's `amended`
+list, which the notebook shows at the end of Method; edit the plan to match
+and push both to `main` together.
+
+Two kinds of change are still allowed after the tiny run, before the real
+run, each as an amendment: cost and timing, and a check that failed because
+of how it was written rather than because the code was wrong. A known-answer
+check, for instance, should compare with the answer on the same sample, since
+test-sample noise alone can break a tolerance set against an exact value.
+After the real run, keep the plan as it was, report any corrected check
+beside the planned one, and say in the write-up where the run departed from
+the plan.
 
 ## 5. Put the plan on `main`
 
@@ -166,12 +175,13 @@ Build a preview of the notebook (the `record` skill's check build) to catch
 format errors. Stage the files by path, and check that `git diff --stat
 origin/main` lists only files that `CLAUDE.md` allows straight onto `main`.
 Then push from the copy with `git push origin HEAD:main`, and publish the
-notebook as the `record` skill says. The commit's time is the record that the
-prediction came first.
+notebook as the `record` skill says. Pushes made within a few minutes of each
+other, such as a plan and an amendment, can share one publish after the last.
+The commit's time is the record that the prediction came first.
 
 If the push is rejected because `main` moved, fetch, rebase onto
-`origin/main`, check again
-that nobody else has planned the same experiment, and push again. Never
+`origin/main`, check again that nobody else has planned the same experiment,
+and push again. Never
 force-push `main`. If the push is refused outright, stop and tell the person.
 Don't run an experiment whose plan isn't on `main`.
 
@@ -212,7 +222,8 @@ The PR description holds the launch log: one line per launch, development
 pods included, with its id, hourly price, time limit, worst case, how it
 ended and what it cost. Write each line before creating the pod, and finish
 it when the pod is gone. Work the cost out as the price times the pod's
-lifetime (from `get-pod`), because billing lags by an hour or more.
+lifetime (from `get-pod`), because billing lags by an hour or more. A session
+run gets a line too, at no cost, so the log lists every run.
 
 ## 8. Prove the plumbing on a tiny run
 
@@ -220,7 +231,9 @@ Run a tiny version first, on CPU in the session where possible: a few
 examples, one seed, a small model, and every arm, controls included. Take the
 examples from the training or development split, or make them up, and never
 from the test split or an exploration's held-out portion. The tiny run proves
-the code works, not the result. Check that:
+the code works, not the result. An item below is whatever the result is made
+of: a prompt and its response, a synthetic input, or a trained model. Check
+that:
 - it runs end to end, and its outputs have the right shapes and ranges;
 - every file it should write is written, and a pod job's are uploaded;
 - a case with a known answer gets it;
@@ -254,9 +267,10 @@ Before ending the turn, schedule the `compute` skill's checks, because a pod
 stuck pulling its image sends no report to wake the session. When the
 `started` report arrives, set the experiment's `status: running`, its
 `started` date and `pr`, and its Next entry's `state: running`, then push
-those to `main` and publish the notebook. A session run longer than a few
-minutes does the same when it starts, with a `claude-<slug>-<n>` id as its
-`JOB_ID`.
+those to `main` and publish the notebook. A session run expected to take
+more than 10 minutes does the same when it starts, with a
+`claude-<slug>-<n>` id as its `JOB_ID`. A shorter one keeps its status
+`planned` until the write-up.
 
 Have the job write results as each condition finishes, so a stopped job
 loses little and can resume (`RESUME_FROM`). Save per-item outputs (each
@@ -320,7 +334,8 @@ and its figures, and update the thread's findings and History. Fill in
 Then update the thread's Next. Remove the experiment's own entry if the
 result answers it. If it doesn't, put the entry back to open without the
 experiment. Add the follow-ups the result suggests, each with its `action`,
-`cost_gpu_min` and `settles`, the most valuable first. Build the notebook
+`cost_gpu_min` (or `cost_cpu_min` for work on CPU in a session) and
+`settles`, the most valuable first. Build the notebook
 from the branch to check it, and mark the PR ready for review.
 
 If the experiment is abandoned before anything was launched, record that on
@@ -332,7 +347,7 @@ record. A failed run that leaves no record will be run again.
 ## 11. Say what comes next, and stop
 
 When the PR is ready, check that no `claude-` pod, endpoint or volume this
-experiment created is still there. Then tell the person, with a push
+experiment created is still there, if it created any. Then tell the person, with a push
 notification, what the result was, with a link to the PR and the item in
 Next you'd do next, and stop. When the merge wakes the session, publish the
 notebook as the `record` skill says, and don't start the next experiment

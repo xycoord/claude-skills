@@ -33,7 +33,7 @@ Folders and files whose names start with `.` or `_`, and a `README.md` in `threa
   ```
 
 - **Dates are ISO dates**, such as `2026-11-14`, in every date field. The build stops on any other form, such as `14 Nov`.
-- **Numbers are numbers**: `cost_gpu_min`, `cost_usd` and `pr` unquoted, and `commit` a hash.
+- **Numbers are numbers**: `cost_gpu_min`, `cost_cpu_min`, `cost_usd` and `pr` unquoted, and `commit` a hash.
 
 ## threads/<thread-id>.md
 
@@ -65,7 +65,8 @@ next:                                             # what's running, open leads a
   - id: Q-other-family
     question: Does the last-token advantage hold on another model family?
     action: Run the readout comparison on Qwen 2.5 7B.
-    cost_gpu_min: 50                              # optional
+    cost_gpu_min: 50                              # optional: GPU-minutes, for work on a pod
+    cost_cpu_min: 10                              # optional: minutes on CPU in a session, instead of cost_gpu_min
     state: running                                # open | running | parked (open if left out)
     experiment: E-2026-11-17-qwen-agg             # once planned (state stays open until it runs)
     settles: No gap there would narrow the finding to Llama.   # optional
@@ -107,6 +108,8 @@ cost_usd: 3.80
 rerun: uv run probes/readout_sweep.py -c configs/E-2026-11-12-agg-sweep.yaml
 since:                                            # dated lines added when later work changes how this reads
   - { date: 2026-11-14, line: "Replicated on convincing-game, with a smaller gap." }
+amended:                                          # changes to the plan made before the real run, each dated; shown at the end of Method
+  - { date: 2026-11-11, line: "Added max-pool as a third readout." }
 ---
 ```
 

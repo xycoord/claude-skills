@@ -467,6 +467,11 @@ def load(root: Path, p: Problems):
         for i, s in enumerate(c.mappings(e, "since", ""), start=1):
             c.date(s, "date", f"since item {i} ", required=True)
             c.text(s, ["line"], f"since item {i} ")
+        for i, s in enumerate(c.mappings(e, "amended", ""), start=1):
+            c.date(s, "date", f"amended item {i} ", required=True)
+            c.text(s, ["line"], f"amended item {i} ")
+            if not s.get("line"):
+                p.error(readme, f"amended item {i} doesn't say what changed (line: ...)")
 
         for fpath in sorted((d / "figs").glob("*.json")) if (d / "figs").is_dir() else []:
             key = f"{e['id']}/{fpath.stem}"
@@ -591,10 +596,11 @@ def load(root: Path, p: Problems):
             q["state"] = q.get("state") or "open"
             if q["state"] not in ("open", "running", "parked"):
                 p.error(f, f"{what}state {q['state']!r} should be open, running or parked")
-            cost = q.get("cost_gpu_min")
-            if cost is not None and (isinstance(cost, bool) or not isinstance(cost, (int, float)) or cost < 0):
-                p.error(f, f"{what}cost_gpu_min {cost!r} should be a number of GPU-minutes")
-                q["cost_gpu_min"] = None
+            for k, unit in (("cost_gpu_min", "GPU"), ("cost_cpu_min", "CPU")):
+                cost = q.get(k)
+                if cost is not None and (isinstance(cost, bool) or not isinstance(cost, (int, float)) or cost < 0):
+                    p.error(f, f"{what}{k} {cost!r} should be a number of {unit}-minutes")
+                    q[k] = None
             if q.get("lead") not in (None, True, False):
                 p.error(f, f"{what}lead should be true or false")
             for k in ("experiment", "from"):
@@ -638,6 +644,7 @@ def load(root: Path, p: Problems):
             pr["text"] = md.inline(pr.get("text"), path)
             pr["how"] = md.inline(pr.get("how"), path)
         e["since"] = [{"date": s.get("date"), "line": md.inline(s.get("line"), path)} for s in e["since"]]
+        e["amended"] = [{"date": s.get("date"), "line": md.inline(s.get("line"), path)} for s in e["amended"]]
 
     # Every in-page link must lead somewhere.
     targets = {"threads", "next", "experiments"} | {f"t-{t}" for t in tids} | set(ids) | set(fids) | set(qids)
@@ -923,7 +930,7 @@ const kv = rows => { const r = rows.filter(x => x && x[1]); return r.length ? `<
 const strengthWord = f => cap(f.strength);
 // A finding's dated status: when it was written or raised, marked when that's newer than the last visit.
 const fstatus = f => { const w = f.raised ? "Raised" : isNew(f.date) ? "New" : "Since"; return isNew(f.date) ? `<span class="nb-new">${w} ${day(f.date)}</span>` : `${w} ${day(f.date)}`; };
-const gpu = q => q.cost_gpu_min ? `<span class="muted nw">, ${esc(q.cost_gpu_min)}&nbsp;GPU-min</span>` : "";
+const gpu = q => q.cost_gpu_min ? `<span class="muted nw">, ${esc(q.cost_gpu_min)}&nbsp;GPU-min</span>` : q.cost_cpu_min != null ? `<span class="muted nw">, ${esc(q.cost_cpu_min)}&nbsp;min on CPU</span>` : "";
 // A step to take: the action and its cost as one sentence, then what its result would settle.
 const step = q => { const a = String(q.action || q.question || "").replace(/\.$/, ""); return `${a}${gpu(q)}.${q.settles ? " " + q.settles : ""}`; };
 // What a Next item's row says: running, parked, planned as an experiment, or the step that would answer it.
@@ -1096,8 +1103,10 @@ function viewExperiment(e) {
     if (buf || first) flush();
     return out;
   };
-  if (explore) ["Why we looked", "The data", "Patterns", "Looked at and found nothing", "Method"].forEach(l => h += body(l));
-  else { h += body("Why we ran it", pred); ["What was compared", "Result", "Method", "Checks", "Examples", "Caveats"].forEach(l => h += body(l)); }
+  const amended = (e.amended || []).map(a => `<p><b>Plan amended ${day(a.date)}, before the run:</b> ${a.line}</p>`).join("");
+  const extras = { "Why we ran it": pred, "Method": amended };
+  if (explore) ["Why we looked", "The data", "Patterns", "Looked at and found nothing", "Method"].forEach(l => h += body(l, extras[l]));
+  else ["Why we ran it", "What was compared", "Result", "Method", "Checks", "Examples", "Caveats"].forEach(l => h += body(l, extras[l]));
   e.sections.filter(s => !done.has(s.label)).forEach(s => h += body(s.label));
   // Generated: the findings this run supports, or for exploration the leads it handed to the thread's Next.
   const cites = e.findings.map(x => { const f = FND[x.id]; return f ? `<li><a class="item" href="#${esc(f.id)}"><span class="t">${f.claim}</span><p class="a">${[x.role && cap(esc(x.role)), f.status === "current" ? `${strengthWord(f)}, since ${day(f.date)}` : `${cap(f.status)} ${day(f.date)}`].filter(Boolean).join(". ")}.</p></a></li>` : ""; }).join("");
