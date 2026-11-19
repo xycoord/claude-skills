@@ -14,16 +14,20 @@
   /* Colour coding: the dataviz skill's validated categorical order, checked on this white page. Grey is kept for references.
      Slots 3, 4 and 5 are under 3:1 against white, so anything they code also gets a direct label or a value table. */
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  /* Encoding values: signed values (for or against something) run from --div-neg through the page colour to --div-pos;
+     magnitudes run from the page colour to --seq. The pair is the dataviz skill's diverging pair; the sequential hue is its
+     violet rather than its blue, so a magnitude is never mistaken for the blue "against" side of a signed value. */
+  --div-neg: #2a78d6; --div-pos: #e34948; --seq: #6250d6;
   --f-sans: "Figtree", "Albert Sans", system-ui, sans-serif;
   --f-mono: "Fira Code", ui-monospace, Menlo, monospace;
   --mgw: 170px; --gut: 36px;                            /* margin column and its gap */
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #16171a; --ink: #eceff3; --ink-2: #c3cad4; --muted: #8d96a3; --line: #2a2c31; --line-2: #464a52; --grid: #222830;
-  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; color-scheme: dark; } }
+  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; --div-neg: #3987e5; --div-pos: #e66767; --seq: #9085e9; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #16171a; --ink: #eceff3; --ink-2: #c3cad4; --muted: #8d96a3; --line: #2a2c31; --line-2: #464a52; --grid: #222830;
-  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; color-scheme: dark; }
+  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; --div-neg: #3987e5; --div-pos: #e66767; --seq: #9085e9; color-scheme: dark; }
 
 /* Type: 24 title, 20 opening answer, 17 headings, 16 body, 15 secondary, 14 labels and captions, 13 footer and table heads. */
 * { box-sizing: border-box; }
@@ -40,6 +44,9 @@ b, strong { font-weight: 600; }
 .nw { white-space: nowrap; }
 .id, code { font-family: var(--f-mono); font-size: max(13px, 0.88em); font-variant-ligatures: none; }  /* IDs, hashes, code, commands only */
 .id { white-space: nowrap; }
+/* Monospace marks a token as a token, in prose (instead of quotes) and in views. Running text read for meaning stays in the body font. */
+.tok { font-family: var(--f-mono); font-variant-ligatures: none; font-size: max(13px, 0.92em); white-space: pre; }
+svg text.tok { font-family: var(--f-mono); font-variant-ligatures: none; }
 pre { font-family: var(--f-mono); font-size: 14px; font-variant-ligatures: none; overflow-x: auto; padding: 10px 0; border-block: 1px solid var(--line); }
 /* A colour key: a small dot before the name of a colour-coded thing, in tables, lists and diagram labels alike.
    <span class="sw" style="--c: var(--s2)">Mixed</span> */
@@ -79,11 +86,11 @@ footer { padding-block: 0 48px; font-size: 13px; color: var(--muted); }
 .mg > .ml > span { display: block; }               /* label, then its date, on separate lines on a desktop */
 .mg > .mc { min-width: 0; max-width: 640px; }
 .mg > .mc.wide { max-width: none; }                 /* tables and charts may use the full content width */
-/* A figure that needs the room spans the whole page width, margin column included. Its caption stays at text width.
+/* A figure that needs the room spans the whole page width, margin column included, with its title and caption
+   aligned to the figure's left edge. The caption keeps the text measure.
    <figure class="bleed"><div class="ftitle">…</div>…<figcaption>…</figcaption></figure>, placed between sections. */
 .bleed { max-width: none; }
-.bleed figcaption, .bleed .ftitle { max-width: 640px; margin-left: calc(var(--mgw) + var(--gut)); }
-@media (max-width: 860px) { .bleed figcaption, .bleed .ftitle { margin-left: 0; } }
+.bleed figcaption { max-width: 640px; }
 .page > * + * { margin-top: 28px; }
 .mc > p + p { margin-top: 8px; }
 .crumb { font-size: 14px; margin-bottom: 10px; }
@@ -124,6 +131,7 @@ button.primary { font: inherit; font-weight: 600; font-size: 15px; color: #fff; 
 
 /* Figures, charts and tables */
 figure { display: grid; gap: 6px; }
+figure > * { min-width: 0; }
 .ftitle { font-size: 14px; font-weight: 600; }
 figcaption { font-size: 14px; color: var(--muted); line-height: 1.45; max-width: 640px; }
 .chart { display: block; overflow: visible; max-width: 100%; }
@@ -142,6 +150,9 @@ table.main { font-size: 16px; width: 100%; }        /* the page's main compariso
 table.main th { font-size: 14px; }
 .tablewrap { overflow-x: auto; }
 .tablewrap th:first-child, .tablewrap td:first-child { position: sticky; left: 0; background: var(--bg); }
+#tip .tok { font-size: 13px; }
+#tip .tip-rows { display: grid; grid-template-columns: auto auto; column-gap: 14px; margin: 4px 0; font-variant-numeric: tabular-nums; }
+#tip .tip-rows > span:nth-child(even) { text-align: right; }
 #tip { position: fixed; z-index: 20; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 13px; padding: 5px 8px; border-radius: 5px; max-width: 280px; }
 [hidden] { display: none !important; }
 
@@ -171,6 +182,56 @@ table.main th { font-size: 14px; }
 .diagram .box { fill: var(--bg); stroke: var(--line-2); stroke-width: 1; }
 .diagram .edge { fill: none; stroke: var(--muted); stroke-width: 1.25; }
 .diagram marker path { fill: var(--muted); }
+
+/* Views of model internals (interp.js). Colour here encodes values, so these sit inside [data-viz]. */
+.iv-text { font-size: 16px; line-height: 1.9; white-space: pre-wrap; max-width: 760px; }
+.iv-tok { border-radius: 2px; padding: 2px 0; box-decoration-break: clone; -webkit-box-decoration-break: clone; cursor: default; }
+.iv-tok:hover, .iv-tok:focus-visible { outline: 1px solid var(--ink-2); outline-offset: 0; }
+.iv-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 10px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.iv-key-steps { display: inline-flex; border: 1px solid var(--line); }
+.iv-key-steps i { width: 16px; height: 12px; }
+.iv-key-labels { display: inline-flex; gap: 10px; }
+.iv-examples > li { display: grid; grid-template-columns: minmax(0, 1fr) 52px; column-gap: 16px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.iv-examples .iv-text { font-size: 15px; }
+.iv-max { text-align: right; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.iv-hist { margin-bottom: 8px; }
+/* The lens grid: equal columns, cells separated by a 2px gap in the page colour, layer numbers right-aligned
+   against the grid, prompt tokens along the bottom under their columns. */
+.lx-ctl { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 24px; margin-bottom: 12px; }
+.lx-ctl label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.lx-ctl select { min-height: 36px; padding: 4px 10px; width: auto; font-size: 15px; }
+.lx-ctl .iv-key { margin-top: 0; padding-bottom: 8px; }
+table.lx-grid { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 2px; font-size: 13px; }
+.lx-grid col.lx-lcol { width: 52px; }
+.lx-grid td { height: 28px; line-height: 28px; vertical-align: middle; padding: 0 4px; text-align: center; white-space: pre; overflow: hidden; text-overflow: ellipsis; border: 0; border-radius: 3px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.lx-grid td:hover { outline: 1px solid var(--ink-2); outline-offset: -1px; }
+.lx-grid td.lx-sel { outline: 2px solid var(--ink); outline-offset: -2px; font-weight: 600; }
+.lx-grid tbody th { height: 28px; line-height: 28px; vertical-align: middle; padding: 0 10px 0 0; text-align: right; font-weight: 400; color: var(--muted); border: 0; font-variant-numeric: tabular-nums; }
+.lx-grid tfoot th { padding: 8px 2px 0; text-align: center; font-weight: 500; font-size: 13px; color: var(--ink); white-space: pre; overflow: hidden; text-overflow: ellipsis; border: 0; border-top: 1px solid var(--line-2); }
+.lx-grid tfoot th.lx-cur { border-top: 2px solid var(--ink); padding-top: 7px; }
+.lx-grid tfoot th.lx-corner { text-align: right; padding-right: 10px; font-weight: 400; color: var(--muted); }
+.lx-detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; margin-top: 28px; }
+.lx-panel h3 { font-size: 14px; font-weight: 600; margin: 0 0 8px; }
+.lx-read > li { display: grid; grid-template-columns: 24px minmax(0, 1fr) minmax(60px, 140px) 52px; align-items: center; column-gap: 8px; min-height: 30px; line-height: 1; }
+.lx-read > li + li { margin-top: 2px; }
+.lx-rank { color: var(--muted); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.lx-tok { position: relative; display: flex; align-items: center; line-height: 1; gap: 0; width: 100%; min-height: 28px; padding: 0 8px; font: inherit; font-size: 15px; color: var(--ink); background: none; border: 0; border-radius: 3px; text-align: left; cursor: pointer; white-space: pre; overflow: hidden; }
+.lx-tok:hover .lx-t { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; text-decoration-color: var(--line-2); }
+.lx-tok.lx-pinned { font-weight: 600; }
+/* The probability is a bar of its own, beside the token rather than behind it, so it can't read as a highlight on part of the token. */
+.lx-barw { height: 8px; background: var(--grid); border-radius: 2px; overflow: hidden; }
+.lx-bar { display: block; height: 100%; background: var(--seq); border-radius: 2px; }
+.lx-t, .lx-tok .sw { position: relative; }
+.lx-tok .sw::before { margin-right: 2px; }
+.lx-p { text-align: right; font-size: 13px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.lx-hint { font-size: 13px; color: var(--muted); margin-top: 8px; }
+.lx-pins { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-top: 6px; font-size: 14px; }
+.lx-pins li { display: inline-flex; align-items: center; gap: 8px; white-space: pre; }
+.lx-unpin { font: inherit; font-size: 13px; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
+.lx-unpin:hover { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 860px) { .lx-detail { grid-template-columns: minmax(0, 1fr); gap: 24px; } }
+.iv-graph .iv-edge, .iv-graph .iv-node { transition: opacity .12s; }
+.iv-graph .iv-dim { opacity: 0.15; }
 
 /* Printing: no sticky header, bookkeeping open, links in ink. base.js opens the disclosure before printing. */
 @media print {

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Model internals views</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&text=0123456789-&display=swap">
+<!-- In a real page, paste base.css here inside <style>; the link stands in for it. -->
+<link rel="stylesheet" href="base.css">
+</head>
+<body>
+<!-- The standard views of model internals from interp.js, each in the setting it's for. Every number is made up. -->
+<main class="wrap page">
+  <div class="mg"><div class="ml"></div><div class="mc">
+    <h1>Model internals views</h1>
+    <p class="lead" style="margin-top:12px">The standard views from interpretability work, drawn in the functional-design style. Colour here encodes values, so red always means toward lying and blue toward honesty, and darker always means more.</p>
+  </div></div>
+
+  <section class="mg"><div class="ml"><span>Token highlights</span></div><div class="mc">
+    <figure>
+      <div class="ftitle">Lie-probe score on each token, layer 16</div>
+      <div id="tok-lie"></div>
+      <div id="tok-honest" style="margin-top:14px"></div>
+      <figcaption>Two responses to the same question, on one shared scale so their colours compare. Red is evidence for a lie and blue for honesty; the probe's threshold is 0. Hover or focus a token for its exact score.</figcaption>
+    </figure>
+  </div></section>
+
+  <section class="mg"><div class="ml"><span>Top examples</span></div><div class="mc">
+    <figure>
+      <div class="ftitle">Feature 4,217: reassurance without evidence</div>
+      <div id="feature"></div>
+      <figcaption>The six contexts where the feature fires most strongly, strongest first, each a window around its peak token. Above them, how strongly it fires across the 38,412 tokens where it's active at all.</figcaption>
+    </figure>
+  </div></section>
+
+  <section class="mg"><div class="ml"><span>Attention pattern</span></div><div class="mc wide">
+    <figure>
+      <div class="ftitle">Head 14.3: attention from each token to earlier tokens</div>
+      <div id="attn"></div>
+      <figcaption>Each row is a token attending back to the tokens in its columns; each row sums to 1. Above the diagonal is empty because a token can't attend forward. <span class="tok"> it</span> attends mostly to <span class="tok"> supplement</span>, which is how this head carries what "it" refers to.</figcaption>
+    </figure>
+  </div></section>
+
+  <section class="mg"><div class="ml"><span>Layer by position</span></div><div class="mc wide">
+    <figure>
+      <div class="ftitle">Lie-probe score by layer and token</div>
+      <div id="layers"></div>
+      <figcaption>A probe trained at each layer, scored on every token of the lying response. The lie becomes readable from layer 12, and most strongly at the claim's last tokens.</figcaption>
+    </figure>
+  </div></section>
+
+  <div class="mg"><div class="ml"><span>Lens</span></div><div class="mc"><p>A lens reads what each layer is poised to say at each position: the logit lens, the J-lens or a tuned lens all fit this view. It uses the full page width, so every token has room.</p></div></div>
+  <figure class="bleed">
+    <div class="ftitle">J-lens readout, two-hop question</div>
+    <p class="small muted">Select a cell for its full readout, and pin a token from it to track its rank through the layers. Arrow keys move the selection.</p>
+    <div id="lens" style="margin-top:8px"></div>
+    <figcaption>Each cell is the lens's top token at that layer and position, final layer at the top, from 25 evenly spaced layers numbered as a percentage of depth. At the last position the model holds <span class="tok"> Texas</span> from about layer 28, the hidden middle step, before <span class="tok"> Austin</span> takes over from layer 68.</figcaption>
+  </figure>
+
+  <div class="mg"><div class="ml"><span>Attribution graph</span></div><div class="mc"><p>A graph uses the full page width, since it isn't read line by line.</p></div></div>
+  <figure class="bleed">
+    <div class="ftitle">What drives the lie score on <span class="tok"> nothing to worry about</span></div>
+    <div class="tablewrap" id="graph"></div>
+    <figcaption>Inputs on the left, features at two layers, and the probe's score on the right. Edge width is how much one node drives the next, red pushing toward "lie" and blue against it. Hover or focus a node to see only its connections.</figcaption>
+  </figure>
+</main>
+<!-- In a real page, paste base.js, charts.js and interp.js here inside <script>. -->
+<script src="base.js"></script>
+<script src="charts.js"></script>
+<script src="interp.js"></script>
+<script>
+const lie = [["The", -0.2], [" supplement", 0.3], [" has", 0.1], [" passed", 1.1], [" every", 1.6], [" safety", 1.4], [" test", 1.2], [" we", 0.4], ["'ve", 0.3], [" run", 0.6], [",", 0.2], [" so", 0.9], [" there", 1.3], ["'s", 1.5], [" nothing", 2.6], [" to", 2.2], [" worry", 2.8], [" about", 2.4], [".", 1.9]];
+const honest = [["I", -0.6], [" can", -0.4], ["'t", -1.2], [" confirm", -1.9], [" that", -0.9], [" dosage", -0.5], [" is", -0.7], [" safe", -1.1], [".", -0.8], [" Please", -1.4], [" check", -1.6], [" with", -0.9], [" a", -0.6], [" pharmacist", -1.3], [" before", -0.8], [" taking", -0.5], [" it", -0.4], [".", -0.7]];
+tokenText(document.getElementById("tok-lie"), { tokens: lie, scale: 3, label: "Probe score: honest to lie", noKey: true });
+tokenText(document.getElementById("tok-honest"), { tokens: honest, scale: 3, label: "Probe score: honest to lie" });
+
+const ex = (text, peakAt, peak) => { const t = text.match(/\s?[^\s]+/g); return { max: peak, tokens: t.map((w, i) => [w, Math.max(0, peak * Math.exp(-((i - peakAt) ** 2) / 2.2) - 0.15)]) }; };
+topExamples(document.getElementById("feature"), { label: "Activation",
+  hist: { from: 0, to: 9, counts: [9120, 7410, 5630, 4380, 3310, 2510, 1890, 1340, 980, 690, 470, 300, 180, 110, 52, 24, 11, 5], label: "Activation, over tokens where it fires" },
+  examples: [ex("so honestly there is nothing at all to worry about here", 6, 8.7), ex("Rest assured, every batch is completely safe for children", 1, 8.1), ex("You have my word that the bridge has never had a problem", 4, 7.6),
+             ex("Don't worry, the side effects are basically nonexistent", 1, 7.2), ex("It's perfectly safe, people use it every day without trouble", 2, 6.9), ex("There's no risk whatsoever, I've checked it myself", 2, 6.4)] });
+
+const ptoks = ["<bos>", "Is", " the", " supplement", " safe", "?", " Yes", ",", " it", " has", " passed", " tests"];
+const att = ptoks.map((_, i) => { const raw = ptoks.map((_, j) => j > i ? 0 : (j === 0 ? 2.2 : 0.3) + (j === i ? 1.0 : 0) + (i === 8 && j === 3 ? 6 : 0) + (i >= 9 && j === 8 ? 1.6 : 0) + (i === 6 && j === 4 ? 2.4 : 0)); const sum = raw.reduce((a, b) => a + b, 0); return raw.map(v => v / sum); });
+heatmap(document.getElementById("attn"), { rows: ptoks, cols: ptoks, tokenRows: true, values: att, scale: 1, rowLabel: "Query", colLabel: "Key", mask: (i, j) => j > i, label: "Attention weight" });
+
+const layers = [0, 4, 8, 12, 16, 20, 24, 28, 32];
+const byLayer = layers.map(l => lie.map(([, v], k) => { const g = Math.exp(-((l - 18) ** 2) / 90); return +(v * g * (0.6 + k / 30) + (l < 8 ? (Math.sin(k * 1.7 + l) * 0.25) : 0)).toFixed(2); }));
+heatmap(document.getElementById("layers"), { rows: layers.map(l => `Layer ${l}`), cols: lie.map(([t]) => t), values: byLayer, signed: true, scale: 3, rowLabel: "Layer", colLabel: "Token", label: "Probe score: honest to lie" });
+
+const lensTokens = ["Fact", ":", " the", " capital", " of", " the", " state", " containing", " Dallas", " is"];
+const lensLayers = Array.from({ length: 25 }, (_, i) => i * 4);
+// Made-up readouts: each position's own token early, concepts in the middle layers, next-token predictions late.
+const stories = [
+  [["Fact", 0, 14, 0.5], [" Check", 40, 30, 0.12], [":", 88, 20, 0.6]], [[":", 0, 14, 0.5], [" The", 84, 24, 0.5], [" the", 60, 30, 0.1]],
+  [[" the", 0, 14, 0.5], [" first", 50, 30, 0.12], [" capital", 88, 18, 0.35], [" largest", 80, 20, 0.2]], [[" capital", 0, 14, 0.5], [" city", 44, 26, 0.25], [" of", 88, 18, 0.7]],
+  [[" of", 0, 14, 0.5], [" the", 88, 18, 0.55], [" France", 50, 20, 0.08]], [[" the", 0, 14, 0.5], [" state", 86, 20, 0.35], [" United", 70, 24, 0.12], [" country", 76, 22, 0.15]],
+  [[" state", 0, 14, 0.5], [" State", 30, 16, 0.12], [" government", 46, 22, 0.1], [" of", 86, 18, 0.32], [" that", 90, 16, 0.25], [" containing", 64, 18, 0.06]],
+  [[" containing", 0, 14, 0.5], [" includes", 32, 18, 0.12], [" Texas", 60, 26, 0.08], [" the", 90, 16, 0.35], [" Dallas", 84, 20, 0.12]],
+  [[" Dallas", 0, 18, 0.55], [" Fort", 22, 14, 0.18], [" Cowboys", 34, 16, 0.12], [" Texas", 52, 22, 0.42], [" Houston", 58, 20, 0.08], [",", 88, 16, 0.3], [" is", 92, 14, 0.4]],
+  [[" is", 0, 14, 0.5], [" Dallas", 22, 14, 0.14], [" state", 38, 16, 0.18], [" Texas", 54, 22, 0.55], [" Houston", 66, 14, 0.1], [" Austin", 98, 30, 0.86], [" capital", 70, 16, 0.06]],
+];
+const filler = [" the", " a", ",", " and", " of", " in", " to", ".", " that", " was", " for", " on", " with", " as", " it", " at", " by", " from", " an", " this", " not", " be"];
+const lensTop = lensLayers.map(L => stories.map((cands, p) => {
+  const sc = {}; cands.forEach(([t, c, w, pk]) => sc[t] = (sc[t] || 0) + pk * Math.exp(-((L - c) ** 2) / (2 * w * w)));
+  filler.forEach((t, i) => sc[t] = (sc[t] || 0) + 0.012 + 0.01 * Math.abs(Math.sin(i * 7.3 + L * 0.37 + p * 1.9)));
+  const tot = Object.values(sc).reduce((a, b) => a + b, 0);
+  return Object.entries(sc).map(([t, v]) => [t, v / tot]).sort((a, b) => b[1] - a[1]).slice(0, 20);
+}));
+lensExplorer(document.getElementById("lens"), { tokens: lensTokens, layers: lensLayers, top: lensTop, pins: [" Texas", " Austin"], select: [13, 9] });
+
+graph(document.getElementById("graph"), { label: "Attribution graph for the lie score",
+  columns: [
+    { label: "Input tokens", nodes: [{ id: "t1", label: " supplement", tok: true }, { id: "t2", label: " safety test", tok: true }, { id: "t3", label: " nothing to worry", tok: true }] },
+    { label: "Layer 8 features", nodes: [{ id: "a", label: "Health product", note: "F 1,032" }, { id: "b", label: "Safety claim", note: "F 2,880" }, { id: "c", label: "Reassurance", note: "F 4,217" }] },
+    { label: "Layer 16 features", nodes: [{ id: "d", label: "Risk being downplayed", note: "F 6,114" }, { id: "e", label: "Hedged honesty", note: "F 5,402" }] },
+    { label: "Output", nodes: [{ id: "o", label: "Lie score", note: "+2.8" }] }],
+  edges: [{ from: "t1", to: "a", w: 0.9 }, { from: "t2", to: "b", w: 1.4 }, { from: "t3", to: "c", w: 2.1 }, { from: "a", to: "d", w: 0.6 }, { from: "b", to: "d", w: 1.2 }, { from: "c", to: "d", w: 1.9 },
+          { from: "b", to: "e", w: -0.7 }, { from: "c", to: "e", w: -1.1 }, { from: "d", to: "o", w: 2.4 }, { from: "e", to: "o", w: -0.9 }] });
+</script>
+</body>
+</html>
