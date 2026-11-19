@@ -22,8 +22,9 @@ worktree prune` first). Bring it up to date before each use, with `git fetch`
 and `git checkout --detach origin/main`, since another session may have
 planned something since.
 
-Then search that copy's experiments and threads for the question, expanding the terms through `glossary.yaml`'s synonyms, because a
-question can be answered under another name. Look at planned and running
+Then search that copy's experiments and threads for the question, expanding
+the terms through `glossary.yaml`'s synonyms, because a question can be
+answered under another name. Look at planned and running
 experiments and open PRs too. Check the results dataset for activations or
 results you could reuse instead of paying to make them again. For questions
 about deception, also look in the earlier project named in `CLAUDE.md`.
@@ -85,8 +86,9 @@ launch and relaunch, and any pod used while developing it.
 
 ## 4. Write the plan
 
-Write the plan in the copy of `main` (section 1): `experiments/<id>/README.md` with `status: planned`, in the `record`
-skill's format, before any code runs on the experiment's data. A plan written
+Write the plan in the copy of `main` (section 1), as
+`experiments/<id>/README.md` with `status: planned` in the `record` skill's
+format, before any code runs on the experiment's data. A plan written
 afterwards can't show what was expected.
 
 Every plan says:

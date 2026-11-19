@@ -91,8 +91,8 @@ skill), the session that pushed it publishes straight after.
 
 If the publish is refused because another session published first, update
 the checkout as in step 1, rebuild and publish again. The rebuilt page holds
-both sessions' work, because both are in `main`. Never merge two versions of the HTML by
-hand.
+both sessions' work, because both are in `main`. Never merge two versions of
+the HTML by hand.
 
 The notebook's artifact is created once, when the research repo is set up, and
 its address is committed in `notebook.yaml`. If `artifact` is ever empty,
