@@ -62,7 +62,7 @@ rejects them.
   script. Figures are the arguments of one call into its charts.js or
   interp.js, so read those files' comments when making one.
 
-Before opening the PR, build the page from your branch to check the files:
+Before marking the PR ready, build the page from your branch to check the files:
 `uv run <this skill>/scripts/build_notebook.py <repo> -o <scratchpad>/notebook.html`.
 It stops on anything it can't build, such as a finding citing an experiment
 that doesn't exist or a figure with an unknown view, and names the file. Fix
@@ -72,7 +72,9 @@ miss.
 ## Publishing
 
 Publish from `main` only, after a change to the notebook's files merges, so
-the page always matches `main`.
+the page always matches `main`. The session that owns the PR publishes: it's
+subscribed to the PR, so the merge wakes it. If you merge or push to `main`
+yourself, publish straight after.
 
 1. Pull `main` in the research repo.
 2. Build with `--publish`: `uv run <this skill>/scripts/build_notebook.py <repo> -o <scratchpad>/notebook.html --publish`.
@@ -89,10 +91,10 @@ If the publish is refused because another session published first, pull
 work, because both are in `main`. Never merge two versions of the HTML by
 hand.
 
-If `notebook.yaml` has no `artifact` address yet, publish once without a URL,
-with the icon `notebook`, then write the new address into `notebook.yaml`
-in a PR, so every later session publishes to the same page. The notebook is
-meant to be pinned, so offer once to pin it.
+The notebook's artifact is created once, when the research repo is set up, and
+its address is committed in `notebook.yaml`. If `artifact` is ever empty,
+don't create one: a second session doing the same would make a second
+notebook. Tell the person instead.
 
 ## The build script
 

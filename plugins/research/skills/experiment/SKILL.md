@@ -51,7 +51,9 @@ Estimate the cost before launching, from the GPU's hourly price and the expected
 
 ## 5. Go ahead, or ask first
 
-**Under $5 for the experiment, go ahead.** The plan in the PR shows what was predicted before it ran, which is what the person needs in order to trust it.
+**Judge it by the worst case, not the estimate.** A pod can bill until its deadline, so the worst case is the GPU's hourly price times the time until every pod's deadline, plus the `compute` skill's margin for its fallback delete.
+
+**Under $5 in the worst case, go ahead.** The plan shows what was predicted before it ran, which is what the person needs in order to trust it.
 
 **At $5 or more, ask first.** Post the plan with its cost, send a push notification, and wait for a yes before launching. Keep within the daily budget in `CLAUDE.md` either way.
 
@@ -63,7 +65,7 @@ Work on a branch named after the experiment (`claude/<experiment-id>`) and open 
 
 Run a tiny version first, on CPU in the session where possible: a few examples, one seed, a small model. Check that it runs end to end, that its outputs have the right shapes and ranges, and that its sanity checks behave: a shuffled-label control scores at chance, a known-answer case gets the known answer, and the trivial baseline lands where it should. Only then launch the real run. A bug found after an hour on a GPU costs the hour; one found on a tiny run costs a minute.
 
-Commit the code and its config (`configs/<experiment-id>.yaml`) before the real run, so it runs from a pinned commit and can be rerun.
+Commit and push the code and its config (`configs/<experiment-id>.yaml`) before the real run, so it runs from a pinned commit and can be rerun. A pod fetches the commit from GitHub, so an unpushed commit fails only after the pod has started and been paid for.
 
 ## 8. Run it and watch the first results
 
@@ -73,7 +75,7 @@ Save per-item outputs (each example's score, prediction or activation summary), 
 
 ## 9. Hand over to `record`
 
-When the results are in, follow the `record` skill: write the result into the experiment's file and its figures, give an honest verdict against the prediction (it held, or it didn't, and by how much), and update the thread's findings, Next and History. Mark the PR ready for review.
+When the results are in, follow the `record` skill: write the result into the experiment's file and its figures, give an honest verdict against the prediction (it held, or it didn't, and by how much), and update the thread's findings, Next and History. Build the notebook from the branch to check it, then mark the PR ready for review. When the person merges it, the merge wakes this session, which publishes the notebook as the `record` skill says.
 
 If the experiment failed or was abandoned, record it anyway, with what happened and why. A failed run that leaves no record will be run again.
 
