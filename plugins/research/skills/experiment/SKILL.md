@@ -69,6 +69,12 @@ on CPU, or that needs activations from a model too big to run quickly on CPU.
 Choose the GPU with the lowest cost for the whole run, setup included, among
 those that fit the model in memory.
 
+Use whichever libraries suit the work, such as NumPy, scikit-learn, PyTorch
+or JAX, and add any the repo lacks with `uv add`. Write the code so it isn't
+held back for no reason: train seeds and conditions together in one batch
+rather than looping over them, keep inner loops vectorised, and use every
+core or the GPU you're paying for.
+
 Then work out the cost, where `P` is the pod's hourly price and `T` the
 expected hours, setup included:
 - **the estimate** is `P × T`;
@@ -250,8 +256,11 @@ tokenizer, which loads on CPU without the weights. Fetch the real model's
 uses a different model or machine, have the job start with the same checks
 on a few examples and stop itself if one fails.
 
-Then estimate the cost again. The tiny run's timing carries over only when
-the model and machine match. Go back to section 6 if the new worst case
+Then time the tiny run and look at where the time goes. If most of it is
+Python overhead, one busy core, or waiting on data, fix that before the real
+run, because a run that takes ten times longer than it needs to also costs
+ten times as much on a pod. Then estimate the cost again. The tiny run's
+timing carries over only when the model and machine match. Go back to section 6 if the new worst case
 needs a yes, or goes over the ceiling of one already given.
 
 Commit and push the code and its config (`configs/<experiment-id>.yaml`)

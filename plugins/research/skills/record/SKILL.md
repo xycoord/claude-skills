@@ -59,8 +59,13 @@ rejects them.
 - **Prose** follows the person's Clear writing style
   (`~/.claude/output-styles/clear.md`).
 - **The look** comes from `style:functional-design`, through the build
-  script. Figures are the arguments of one call into its charts.js or
-  interp.js, so read those files' comments when making one.
+  script. Show each result in the form that makes it clearest, whether or
+  not the kit has it. Where a kit view fits, a figure is the arguments of one
+  call into its charts.js or interp.js, so read those files' comments. Where
+  none does, such as a new way of looking at a model's internals or a plot
+  the paper you're reproducing used, write a custom view (`format.md` says
+  how), following the design skill's principles for charts and for views of
+  model internals. A custom view that proves useful can join the kit later.
 
 Before marking the PR ready, build the page from your branch to check the files:
 `uv run <this skill>/scripts/build_notebook.py <repo> -o <scratchpad>/notebook.html`.

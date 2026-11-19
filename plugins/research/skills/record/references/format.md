@@ -135,7 +135,7 @@ Prose fields in the front matter and the write-up are Markdown.
 
 ## experiments/<id>/figs/<name>.json
 
-A figure is the arguments of one call into the design kit (`style:functional-design`: charts.js and interp.js), plus a title and caption. It's placed in the write-up by a line of its own, `::fig <name>`.
+A figure is the arguments of one call into the design kit (`style:functional-design`: charts.js and interp.js), plus a title and caption, or a custom view when no kit view fits. It's placed in the write-up by a line of its own, `::fig <name>`.
 
 ```json
 { "view": "dotChart", "title": "Macro-F1 by readout", "caption": "Harm-pressure v2 test set, n = 1,180. Mean and range of 3 seeds.",
@@ -150,6 +150,18 @@ A figure is the arguments of one call into the design kit (`style:functional-des
 - A table is `{ "view": "table", "head": [...], "rows": [[...]], "numeric": [false, true, ...] }`. Numeric columns are right-aligned and keep their decimal places; `digits` fixes them. Cells that are strings may use inline Markdown, such as `**0.79**`.
 - Title and caption may use inline Markdown too, for tokens in particular.
 - The bookkeeping disclosure shows the values behind every dot, line and bar chart, so a reader can check a chart's numbers.
+
+A **custom view** draws anything the kit doesn't, from its own code. The JSON holds the data, and `figs/<name>.js` beside it holds the drawing code, as the body of `function (el, data)`: it fills `el` with the figure, using `data` from the JSON.
+
+```json
+{ "view": "custom", "title": "Each feature's direction in the hidden space", "caption": "Columns of W at S = 0.9, seed 1.",
+  "data": { "features": [{ "name": "Feature 1", "x": 0.98, "y": 0.10 }] },
+  "values": { "head": ["Feature", "x", "y"], "rows": [["Feature 1", 0.98, 0.10]] } }
+```
+
+- The code runs in the notebook page, after the kit, so it can use the kit's helpers: `FD.draw` (draws at the container's width and redraws on resize), `FD.svg`, `FD.text`, `FD.col` (series colours), `FD.hit` (a hover target with the exact value) and `FD.esc` from charts.js, and `IV.tint`, `IV.key` and `IV.tok` from interp.js. It uses the kit's colour tokens, such as `var(--s1)`, never colours of its own. A view whose colours encode values marks `el` with `data-viz`.
+- `values` is optional: a table of the numbers behind the figure, shown in the bookkeeping disclosure like a kit chart's.
+- The build checks the code's syntax with `node --check` when node is installed, and refuses `</script` or `<!--` in it, which would end the page's script. Each custom view runs in its own script, so one that fails at run time shows an error in its own place and leaves the rest of the page working.
 
 ## glossary.yaml
 
