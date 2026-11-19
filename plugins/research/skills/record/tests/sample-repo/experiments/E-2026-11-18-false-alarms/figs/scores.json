@@ -1,0 +1,60 @@
+{
+ "view": "distChart",
+ "title": "Probe scores of refusals vs other honest answers",
+ "caption": "The 637 honest refusals above the axis, and a random 637 of the other honest answers below. The threshold is the probe's usual one.",
+ "options": {
+  "metric": "Probe score",
+  "c": 2,
+  "threshold": 0.46,
+  "upper": {
+   "name": "Refusals",
+   "counts": [
+    8,
+    22,
+    41,
+    60,
+    72,
+    80,
+    78,
+    70,
+    58,
+    46,
+    35,
+    25,
+    18,
+    11,
+    7,
+    4,
+    2,
+    0,
+    0,
+    0
+   ]
+  },
+  "lower": {
+   "name": "Other honest",
+   "counts": [
+    52,
+    104,
+    128,
+    120,
+    95,
+    64,
+    38,
+    22,
+    9,
+    3,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  }
+ }
+}

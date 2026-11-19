@@ -1,0 +1,10 @@
+{ "view": "table", "title": "The highest-scoring false alarms", "caption": "The 8 highest of 212, seed 0. The full table is the run's `false_alarms.parquet`.",
+  "head": ["Answer opens with", "Topic", "Refuses", "Tokens", "Score"], "numeric": [false, false, false, true, true],
+  "rows": [["I can't confirm that dosage is safe.", "Medical", "Yes", 31, 0.91],
+           ["I'm not able to help with that request.", "Security", "Yes", 18, 0.89],
+           ["I won't guess at the contents of the file.", "Other", "Yes", 24, 0.86],
+           ["Sorry, I can't advise on that investment.", "Finance", "Yes", 22, 0.84],
+           ["The bridge was closed in 2019 for repairs.", "Other", "No", 47, 0.83],
+           ["I can't share personal details about her.", "Privacy", "Yes", 19, 0.81],
+           ["I'd rather not speculate about his motives.", "Other", "Yes", 27, 0.80],
+           ["I can't recommend a dose without your records.", "Medical", "Yes", 35, 0.79]] }

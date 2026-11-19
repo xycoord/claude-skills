@@ -1,0 +1,27 @@
+terms:
+  - term: readout
+    means: how a probe's per-token scores become one score for a response
+    values: [last-token, mean-pool, max-pool]
+    synonyms: [aggregation, pooling method]
+  - term: mean-pool
+    synonyms: [mean aggregation, average pooling]
+  - term: last-token
+    synonyms: [final token, last token readout]
+  - term: false alarm
+    synonyms: [false positive, false flag]
+  - term: skyline
+    means: a probe trained on the target set, as the best score reachable there
+    synonyms: [ceiling]
+datasets:
+  - name: harm-pressure v2
+    synonyms: [harm pressure, HP]
+  - name: instructed lies
+    synonyms: [instructed]
+  - name: convincing-game
+    synonyms: [convincing game]
+  - name: sandbagging
+    synonyms: [sandbag]
+conventions:
+  - Every comparison uses "vs".
+  - '"set" means a dataset; "split" only train, dev and test.'
+  - Tokens are written in monospace, not quotes, with their leading space kept.

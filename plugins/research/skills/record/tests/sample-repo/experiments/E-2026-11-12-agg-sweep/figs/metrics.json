@@ -1,0 +1,6 @@
+{ "view": "table", "title": "Other metrics, by readout", "caption": "Mean of 3 seeds. Precision and recall are for the lie class, at each readout's threshold. Mean-pool's low macro-F1 is mostly missed lies (recall 0.41), not false alarms.",
+  "head": ["Readout", "Macro-F1", "AUROC", "Precision", "Recall", "Accuracy"],
+  "numeric": [false, true, true, true, true, true],
+  "rows": [["Last-token", "**0.79**", 0.88, 0.81, 0.76, 0.80],
+           ["Max-pool", 0.66, 0.77, 0.70, 0.58, 0.67],
+           ["Mean-pool", 0.58, 0.71, 0.66, 0.41, 0.60]] }

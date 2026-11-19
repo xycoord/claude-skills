@@ -1,6 +1,6 @@
-# Notebook writing rules (draft for the `record` skill)
+# Notebook writing rules
 
-How Claude writes up research in the notebook.
+How Claude writes up research in the notebook. The file format these rules fill in is in `format.md` beside this file.
 
 Research moves between two kinds of experiment, and each is written up differently:
 
@@ -30,7 +30,7 @@ Page design (layout, colour, charts, views of model internals, the order of a pa
 
 The notebook has two kinds of page, each written in one file:
 - **Thread** (`threads/<id>.md`): one research question. It holds the current findings (each with a stable `F-` ID), Next (what's running, open leads and questions with their cost, parked ones with the reason) and History (one line per change of belief, attached to the run that caused it).
-- **Experiment** (`experiments/<id>.md`): the fixed record of one run, in one of the two modes.
+- **Experiment** (`experiments/<id>/README.md`): the fixed record of one run, in one of the two modes.
 
 Everything else is generated, never written by hand: the Threads home, the cross-thread Next view, History's run rows, search, the running count, and the links between them. Write each fact once, in the file that owns it: run answers in the experiment, beliefs and next steps in the thread.
 
@@ -38,7 +38,7 @@ A **finding** comes only from testing a hypothesis. Looking for one produces **l
 
 Sections, labelled in the margin with plain words:
 - Thread page, per finding: strength and dated status, then Finding, Result, Method (ending with the experiments it rests on and the role of each), Confidence, Caveats, Implication. Then Next and History.
-- Experiment page, testing a hypothesis: Since then, Answer, Why we ran it, What was compared, Result, Method, Checks, Examples, Finding.
+- Experiment page, testing a hypothesis: Since then, Answer, Why we ran it, What was compared, Result, Method, Checks, Examples, Caveats, Finding.
 - Experiment page, looking for a hypothesis: Since then, What was seen, Why we looked, The data, Patterns, Looked at and found nothing, Method, Leads.
 
 ## Part 1: Shared principles
@@ -134,4 +134,4 @@ The last-token probe flags 4% of honest answers as lies. This experiment gathere
 
 ## Part 5: Project glossary
 
-Each project keeps its own glossary of terms, dataset names and conventions, in its repo, so the record skill stays general. The lie-detection project's glossary currently lives in `drafts/glossary-lie-detection.md`, to move into the project's repo when the `record` skill is written.
+Each project keeps its own glossary of terms, dataset names and conventions in its repo, as `glossary.yaml`, so the record skill stays general. Read it before writing, and use its names. The notebook's search expands a query through the glossary's synonyms, so a new name for an existing thing goes in as a synonym rather than as a new term.
