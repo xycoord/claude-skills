@@ -106,7 +106,7 @@ of running it again. Its header lists every setting.
   Pin it, so the wrapper can't change under a job.
 - **`JOB_ID` is new for every launch**, including relaunches; a reused one is
   refused (`job-id-used`).
-- **`JOB_CMD` does its own setup**, e.g. `uv sync --frozen && uv run python …`.
+- **`JOB_CMD` does its own setup**, e.g. `uv sync --frozen --extra cu128 && uv run python …` in a repo whose torch comes from a CUDA extra (check its `CLAUDE.md`: a plain `uv sync` there installs no torch).
   The image's PyTorch is in the system Python.
 - **A job's deadline** is `createdAt` + `MAX_HOURS` (both in `get-pod`).
 - **Optional, when they help:**
