@@ -71,9 +71,21 @@ those that fit the model in memory.
 
 Use whichever libraries suit the work, such as NumPy, scikit-learn, PyTorch
 or JAX, and add any the repo lacks with `uv add`. Write the code so it isn't
-held back for no reason: train seeds and conditions together in one batch
-rather than looping over them, keep inner loops vectorised, and use every
-core or the GPU you're paying for.
+held back for no reason:
+- **Batch and vectorise.** Train seeds and conditions together in one batch
+  rather than looping over them, keep inner loops vectorised, and use every
+  core or the GPU you're paying for.
+- **Keep data where it's used.** Moving memory is often the real cost. Keep
+  tensors on the GPU, and don't pull values back to the CPU inside a loop
+  (`.item()`, `.cpu()`, converting to NumPy, printing), since each one waits
+  for the GPU. Avoid needless copies, dtype conversions and reallocations;
+  preallocate outputs and write into them.
+- **Take the free gains.** Turn on the settings that speed things up at
+  little or no cost, such as TF32 matrix multiplies on a GPU that has them
+  (`torch.set_float32_matmul_precision("high")`), bf16 autocast, inference
+  mode for forward passes, `torch.compile` or `jax.jit` for code run many
+  times, and a data loader with workers and pinned memory. Lower precision
+  can move a tight tolerance, so say in the plan which you use.
 
 Then work out the cost, where `P` is the pod's hourly price and `T` the
 expected hours, setup included:
