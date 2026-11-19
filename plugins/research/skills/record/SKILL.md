@@ -92,7 +92,9 @@ within a few minutes of each other can share one publish after the last.
    never publish one.
 3. Read the artifact at `notebook.yaml`'s `artifact` address with the
    Artifact tool (`action: "read"`). A publish to an artifact this session
-   hasn't read is refused.
+   hasn't read is refused, so the read registers the live version. Don't
+   open the saved copy of the page it writes, because the page you publish is
+   rebuilt from `main` and needs nothing from the old one.
 4. Publish the built file to that address (`url` set to it).
 
 If the publish is refused because another session published first, update
