@@ -993,7 +993,7 @@ function valuesTable0(key) {
 
 // ---------- the Threads home ----------
 function viewHome() {
-  if (!NB.threads.length) return `<div class="nb-page">${head("", "No threads yet")}${sec("", `<p>A thread is one research question, written as a file in <code>threads/</code> of the research repo. Once one is merged to <code>main</code> and the notebook is rebuilt, it appears here with its findings.</p>`)}</div>`;
+  if (!NB.threads.length) return `<div class="nb-page">${head("", "No threads yet")}${sec("", `<p>A thread is one research question, written as a file in <code>threads/</code> of the research repo. Once one is on <code>main</code> and the notebook is rebuilt, it appears here with its findings.</p>`)}</div>`;
   const row = (ml, mc) => `<div class="mg"><div class="ml">${ml}</div><div class="mc">${mc}</div></div>`;
   const blocks = threadsByActivity().map(t => {
     const cur = t.findings.filter(f => f.status === "current");
