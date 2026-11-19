@@ -4,6 +4,7 @@ thread: readout
 mode: test
 status: done
 date: 2026-11-12
+started: 2026-11-12
 short: the readout sweep
 question: Does reading the probe at the last token beat pooling over the response on harm-pressure lies?
 answer: Yes. Macro-F1 0.79 (0.77–0.81) for last-token vs 0.66 (0.64–0.68) for max-pool and 0.58 (0.55–0.61) for mean-pool. 3 seeds.

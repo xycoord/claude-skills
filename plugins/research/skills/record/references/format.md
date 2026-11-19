@@ -20,6 +20,21 @@ IDs:
 - A finding id is `F-<slug>` and is unique across the repo.
 - A lead or open question id is `Q-<slug>`, also unique across the repo.
 
+Folders and files whose names start with `.` or `_`, and a `README.md` in `threads/`, are skipped, so notebook checkpoints and a note explaining a folder don't break the build.
+
+## Writing YAML fields
+
+- **Quote prose fields, or write them as block scalars.** YAML reads some unquoted words as other types, so `answer: No` becomes false, and it cuts an unquoted value at ` #`, taking the rest as a comment. Prose fields (`question`, `answer`, `short`, `claim`, `method`, `confidence`, `caveats`, `implication`, `retracted`, `action`, `settles`, `parked`, `line`, and the prediction's `text` and `how`) must be text, and the build stops on one that isn't, or on one that a ` #` cut short. A long field reads best as a folded block scalar:
+
+  ```yaml
+  answer: >-
+    No. AUROC 0.54 on sandbagging (chance 0.50) vs 0.93 on held-out
+    instructed lies. 3 seeds.
+  ```
+
+- **Dates are ISO dates**, such as `2026-11-14`, in every date field. The build stops on any other form, such as `14 Nov`.
+- **Numbers are numbers**: `cost_gpu_min`, `cost_usd` and `pr` unquoted, and `commit` a hash.
+
 ## threads/<thread-id>.md
 
 YAML front matter, then optional free notes, which the notebook doesn't show.
@@ -74,7 +89,8 @@ id: E-2026-11-12-agg-sweep
 thread: readout
 mode: test                                        # test (testing a hypothesis) | explore (looking for one)
 status: done                                      # planned | running | done | abandoned | retracted
-date: 2026-11-12
+date: 2026-11-12                                  # when it was planned; matches the id
+started: 2026-11-12                               # optional: when it started running, for "Running since" and "Run"
 short: the readout sweep                          # one short name, used in every sentence that mentions it
 question: Does reading the probe at the last token beat pooling on harm-pressure lies?
 answer: Yes. Macro-F1 0.79 (0.77–0.81) for last-token vs 0.58 (0.55–0.61) for mean-pool. 3 seeds.
@@ -106,6 +122,9 @@ Any section may be missing. The opening (the answer, or what was seen) comes fro
 ## Text in either file
 
 Prose fields in the front matter and the write-up are Markdown.
+
+- **Raw HTML is shown as text**, exactly as written, so quoted model output such as `<think>` or `<s>` stays visible and nothing in a file can run on the page.
+- **Inside fenced code blocks**, `##` lines and `::fig` lines are just code: they don't start sections or place figures.
 
 - **Links** to other pages are hash links: `[the readout sweep](#E-2026-11-12-agg-sweep)`, `#F-<id>` for a finding, `#Q-<id>` for a next step, `#t-<thread-id>` for a thread. The build fails on a link to anything that doesn't exist.
 - **Tokens** go in backticks with their leading space kept, as `` ` Austin` ``. A code span that starts or ends with a space is set as a token; any other code span is set as code.

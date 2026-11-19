@@ -4,6 +4,7 @@ thread: readout
 mode: test
 status: running
 date: 2026-11-17
+started: 2026-11-18
 short: the Qwen comparison
 question: Does the last-token advantage hold on Qwen 2.5 7B?
 prediction:

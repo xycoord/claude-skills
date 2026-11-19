@@ -41,7 +41,11 @@ rejects them.
 ## How to write them
 
 - **The format** is in `references/format.md`. Follow it exactly, because the
-  build reads it field by field.
+  build reads it field by field. Quote prose fields in the YAML front matter,
+  or write them as block scalars (`>-`), because YAML turns an unquoted
+  `answer: No` into false and cuts a value at ` #`. Dates are ISO dates.
+  An experiment's `date` is when it was planned, matching its id, and
+  `started` is when it began running.
 - **The writing rules** are in `references/writing-rules.md`: shared
   principles, the principles for each mode, and worked examples. Read them
   before writing anything for the notebook, and take the principles rather
@@ -71,7 +75,10 @@ Publish from `main` only, after a change to the notebook's files merges, so
 the page always matches `main`.
 
 1. Pull `main` in the research repo.
-2. Build: `uv run <this skill>/scripts/build_notebook.py <repo> -o <scratchpad>/notebook.html`.
+2. Build with `--publish`: `uv run <this skill>/scripts/build_notebook.py <repo> -o <scratchpad>/notebook.html --publish`.
+   It refuses unless the checkout is clean and matches `origin/main`. A build
+   without `--publish` is marked in its footer as a preview of its branch, so
+   never publish one.
 3. Read the artifact at `notebook.yaml`'s `artifact` address with the
    Artifact tool (`action: "read"`). A publish to an artifact this session
    hasn't read is refused.
@@ -94,8 +101,10 @@ meant to be pinned, so offer once to pin it.
 and writes one page with the design kit, the data and its own rendering
 script inside. The page has no doctype, html, head or body tags, because the
 artifact publisher adds them. It finds the kit through `FD_KIT` if that's set,
-then an installed style plugin under `~/.claude/plugins/`, then this repo's
-copy, and downloads it from this repo's `main` if none is there.
+then the style plugin beside this one in the same checkout or install, so the
+kit matches the script's version, then the newest style plugin under
+`~/.claude/plugins/`, and downloads it from this repo's `main` if none is
+there.
 
 `tests/sample-repo/` is a made-up research repo for testing the script, with
 threads and experiments in both modes. It isn't notebook content.
