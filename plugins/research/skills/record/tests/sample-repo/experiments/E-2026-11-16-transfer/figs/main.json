@@ -1,0 +1,7 @@
+{ "view": "dotChart", "title": "AUROC by test set", "caption": "Dot: mean of 3 seeds. Line: lowest to highest seed. Hollow grey rows are references scored on the sandbagging set.",
+  "options": { "metric": "AUROC", "from": 0.4, "to": 1, "lines": [{"v": 0.5, "label": "chance"}],
+    "rows": [{"label": "Instructed (held-out)", "v": 0.93, "lo": 0.92, "hi": 0.94, "c": 1},
+             {"label": "Harm-pressure v2", "v": 0.84, "lo": 0.82, "hi": 0.86, "c": 1},
+             {"label": "Sandbagging", "v": 0.54, "lo": 0.50, "hi": 0.58, "c": 1}],
+    "refs": [{"label": "Length only, sandbagging", "v": 0.57},
+             {"label": "Shuffled labels, sandbagging", "v": 0.50, "lo": 0.47, "hi": 0.53}] } }

@@ -13,7 +13,7 @@
     {
       "name": "research",
       "source": "./plugins/research",
-      "description": "Running ML research with Claude: experiments from plan to result (experiment), compute on Runpod that cleans up after itself, with jobs that report back on the experiment's PR (compute)"
+      "description": "Running ML research with Claude: experiments from plan to result (experiment), the research notebook, from writing up experiments and threads to publishing the page (record), and compute on Runpod that cleans up after itself, with jobs that report back on the experiment's PR (compute)"
     },
     {
       "name": "style",

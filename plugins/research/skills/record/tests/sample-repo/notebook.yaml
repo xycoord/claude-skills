@@ -1,0 +1,4 @@
+# Test fixture for build_notebook.py. Every number, run and commit here is made up.
+title: Sample notebook
+artifact: null
+last_visit: 2026-11-15

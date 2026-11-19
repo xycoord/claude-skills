@@ -1,0 +1,8 @@
+{ "view": "dotChart", "title": "Macro-F1 by readout", "caption": "Harm-pressure v2 test split, n = 1,180. Dot: mean of 3 seeds. Line: lowest to highest seed. Hollow grey rows are references on the same test split.",
+  "options": { "metric": "Macro-F1", "from": 0.4, "to": 1, "lines": [{"v": 0.5, "label": "chance"}],
+    "rows": [{"label": "Last-token", "v": 0.79, "lo": 0.77, "hi": 0.81, "c": 1},
+             {"label": "Max-pool", "v": 0.66, "lo": 0.64, "hi": 0.68, "c": 2},
+             {"label": "Mean-pool", "v": 0.58, "lo": 0.55, "hi": 0.61, "c": 3}],
+    "refs": [{"label": "Skyline: probe trained on this set", "v": 0.86, "lo": 0.85, "hi": 0.87},
+             {"label": "Response length only", "v": 0.61},
+             {"label": "Shuffled-label probe", "v": 0.50, "lo": 0.49, "hi": 0.51}] } }

@@ -1,0 +1,7 @@
+{ "view": "dotChart", "title": "Macro-F1 by readout, convincing-game", "caption": "Convincing-game test split, n = 860. Dot: mean of 3 seeds. Line: lowest to highest seed.",
+  "options": { "metric": "Macro-F1", "from": 0.4, "to": 1, "lines": [{"v": 0.5, "label": "chance"}], "keepOrder": true,
+    "rows": [{"label": "Last-token", "v": 0.71, "lo": 0.69, "hi": 0.73, "c": 1},
+             {"label": "Max-pool", "v": 0.63, "lo": 0.61, "hi": 0.65, "c": 2},
+             {"label": "Mean-pool", "v": 0.59, "lo": 0.57, "hi": 0.61, "c": 3}],
+    "refs": [{"label": "Response length only", "v": 0.55},
+             {"label": "Shuffled-label probe", "v": 0.50, "lo": 0.48, "hi": 0.52}] } }
