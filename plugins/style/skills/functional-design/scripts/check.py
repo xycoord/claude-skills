@@ -18,12 +18,15 @@ PROBE = r"""
   const visible = el => { const r = el.getBoundingClientRect(), s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && s.display !== "none"; };
   const inSvg = el => !!el.closest("svg");
   const ownText = el => [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join("").trim();
-  const rgb = c => { const m = c.match(/[\d.]+/g); return m ? m.map(Number) : [0, 0, 0, 0]; };
+  // Any CSS colour (including color-mix and oklab results) to [r, g, b, a], by painting it on a 1px canvas.
+  const cv = document.createElement("canvas"); cv.width = cv.height = 1; const cx = cv.getContext("2d", { willReadFrequently: true });
+  const rgb = c => { if (!c || c === "transparent" || /rgba?\(0, 0, 0, 0\)/.test(c)) return [0, 0, 0, 0]; cx.clearRect(0, 0, 1, 1); cx.fillStyle = "#000"; cx.fillStyle = c; cx.fillRect(0, 0, 1, 1); const d = cx.getImageData(0, 0, 1, 1).data; return [d[0], d[1], d[2], d[3] / 255]; };
   const lum = ([r, g, b]) => { const f = v => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
   const bgOf = el => { for (let e = el; e; e = e.parentElement) { const c = rgb(getComputedStyle(e).backgroundColor); if (c.length < 4 || c[3] > 0.9) return c; } return [255, 255, 255]; };
   const pageBg = rgb(getComputedStyle(document.body).backgroundColor).slice(0, 3).join();
   const isCode = el => !!el.closest("code, pre, kbd, samp, .id");
   const control = el => el.matches("input, select, textarea, button, #tip, #tip *");
+  const inViz = el => !!el.closest("[data-viz]");  // views whose colour encodes values (interp.js) may tint backgrounds
   const emoji = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
   const cards = {};
   for (const el of document.body.querySelectorAll("*")) {
@@ -42,10 +45,10 @@ PROBE = r"""
     if (s.boxShadow !== "none" && !control(el)) add("shadows", el);
     if (/gradient/.test(s.backgroundImage)) add("gradients", el);
     const bgc = rgb(s.backgroundColor);
-    if ((bgc.length < 4 || bgc[3] > 0.05) && bgc.slice(0, 3).join() !== pageBg && !control(el) && !el.matches("pre, code, mark") && el !== document.body && el !== document.documentElement)
+    if (!inViz(el) && (bgc.length < 4 || bgc[3] > 0.05) && bgc.slice(0, 3).join() !== pageBg && !control(el) && !el.matches("pre, code, mark") && el !== document.body && el !== document.documentElement)
       add("tinted backgrounds (cards, panels, pills)", el);
     const r = el.getBoundingClientRect(), rad = parseFloat(s.borderTopLeftRadius);
-    if (!control(el) && r.height < 32 && rad >= r.height / 2 - 1 && (s.borderTopStyle !== "none" || (bgc[3] ?? 1) > 0.05)) add("pills or badges", el);
+    if (!control(el) && !inViz(el) && r.height < 32 && rad >= r.height / 2 - 1 && (s.borderTopStyle !== "none" || (bgc[3] ?? 1) > 0.05)) add("pills or badges", el);
     const boxed = ["Top", "Right", "Bottom", "Left"].every(k => s[`border${k}Style`] !== "none" && parseFloat(s[`border${k}Width`]) > 0);
     if (boxed && rad > 0 && parseFloat(s.paddingTop) >= 8 && !control(el)) { const k = el.tagName + "." + el.className; (cards[k] ||= []).push(el); }
   }

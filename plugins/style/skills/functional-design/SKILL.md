@@ -13,7 +13,7 @@ A project's own design system or brand guide wins over this one. For an Artifact
 
 ## Start from the kit
 
-Paste `references/base.css` and `references/base.js` into the page, and `references/charts.js` if it has charts, then add only what the page needs. They set the fonts, colours, sizes, margin layout, lists, forms, tables, diagrams, charts, phone and print behaviour, the remembered disclosure and value tooltips, and their comments say how to use each part. `references/example.html` is a finished page, so copy its patterns rather than inventing new ones. Starting from the kit is what keeps my pages consistent, because a description of a look drifts in a way a stylesheet doesn't.
+Paste `references/base.css` and `references/base.js` into the page, `references/charts.js` if it has charts, and `references/interp.js` after it for views of model internals, then add only what the page needs. They set the fonts, colours, sizes, margin layout, lists, forms, tables, diagrams, charts, phone and print behaviour, the remembered disclosure and value tooltips, and their comments say how to use each part. `references/example.html` is a finished page, so copy its patterns rather than inventing new ones. Starting from the kit is what keeps my pages consistent, because a description of a look drifts in a way a stylesheet doesn't.
 
 ## Show what I need first
 
@@ -81,6 +81,18 @@ The title says what's measured against what ("AUROC by test set"), and the capti
 ## Diagrams
 
 A diagram shows flow, and a table makes comparisons, so a page can need both for the same things. How three training sets are built from shared sources is a diagram, and what each set contains side by side is a table. Put the key numbers in the diagram's boxes as well, so it supports a rough comparison on its own. A plain sequence of steps reads better as a list, like the method flow in `example.html`, so a diagram earns its place when the structure branches, joins or loops. Then the boxes are allowed, because in a diagram they carry the structure. They use 1px strokes in the rule grey, with no fills or coloured edges. A box for a colour-coded thing gets the same colour key as everywhere else, a small dot before its name from the `sw` class, because coloured stripes down the side of a box are another mark of a generated page. Labels are plain words in the page font at 13px, with a muted second line for detail, and arrows are simple. `base.css` styles an `svg.diagram` this way, and `charts.html` has an example. Give the drawing its natural size, so its text stays at 13px, inside a `.tablewrap` so a narrow window can scroll it. For the mechanics of drawing one, load the artifact-diagramming skill.
+
+## Views of model internals
+
+My research is AI safety work on what happens inside models, and its most useful views often aren't standard charts. `references/interp.js` draws the established ones, and `references/interp.html` shows each in use: values over text (token highlights), a feature's top-activating examples, heatmaps over two axes (attention, or a probe's score by layer and token), the logit lens, and attribution graphs. I also expect to need views nobody has designed yet, so these principles matter more than the list.
+
+- Say what the unit is, whether a token, a feature, a head or a layer, because the unit decides the layout.
+- Encode a value by its kind. A signed value, for or against something, runs from blue through the page colour to red, so zero is nothing. A magnitude runs from the page colour to violet, a different hue, so it's never mistaken for one side of a signed value. Every view carries its key, and shows each exact value on hover or focus.
+- Views shown together share one scale, because colours on different scales can't be compared.
+- Over text, a value is a pale tint behind ink-coloured words, so the text stays readable.
+- Every mark leads back to the raw data behind it, one step away.
+- Here colour is data, not decoration, so the rule against tinted backgrounds doesn't apply. Mark the view's container `data-viz`, which the check script exempts.
+- Build a new kind of view as a prototype on real data, and iterate on it with me. Only once it has proved useful does it join the kit.
 
 ## Words
 

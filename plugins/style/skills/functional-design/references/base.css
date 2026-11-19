@@ -14,16 +14,20 @@
   /* Colour coding: the dataviz skill's validated categorical order, checked on this white page. Grey is kept for references.
      Slots 3, 4 and 5 are under 3:1 against white, so anything they code also gets a direct label or a value table. */
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  /* Encoding values: signed values (for or against something) run from --div-neg through the page colour to --div-pos;
+     magnitudes run from the page colour to --seq. The pair is the dataviz skill's diverging pair; the sequential hue is its
+     violet rather than its blue, so a magnitude is never mistaken for the blue "against" side of a signed value. */
+  --div-neg: #2a78d6; --div-pos: #e34948; --seq: #6250d6;
   --f-sans: "Figtree", "Albert Sans", system-ui, sans-serif;
   --f-mono: "Fira Code", ui-monospace, Menlo, monospace;
   --mgw: 170px; --gut: 36px;                            /* margin column and its gap */
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #16171a; --ink: #eceff3; --ink-2: #c3cad4; --muted: #8d96a3; --line: #2a2c31; --line-2: #464a52; --grid: #222830;
-  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; color-scheme: dark; } }
+  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; --div-neg: #3987e5; --div-pos: #e66767; --seq: #9085e9; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #16171a; --ink: #eceff3; --ink-2: #c3cad4; --muted: #8d96a3; --line: #2a2c31; --line-2: #464a52; --grid: #222830;
-  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; color-scheme: dark; }
+  --accent: #6fb6c0; --good: #4cc46e; --warn-ink: #f2a46a; --crit: #ec6b6b; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; --div-neg: #3987e5; --div-pos: #e66767; --seq: #9085e9; color-scheme: dark; }
 
 /* Type: 24 title, 20 opening answer, 17 headings, 16 body, 15 secondary, 14 labels and captions, 13 footer and table heads. */
 * { box-sizing: border-box; }
@@ -124,6 +128,7 @@ button.primary { font: inherit; font-weight: 600; font-size: 15px; color: #fff; 
 
 /* Figures, charts and tables */
 figure { display: grid; gap: 6px; }
+figure > * { min-width: 0; }
 .ftitle { font-size: 14px; font-weight: 600; }
 figcaption { font-size: 14px; color: var(--muted); line-height: 1.45; max-width: 640px; }
 .chart { display: block; overflow: visible; max-width: 100%; }
@@ -171,6 +176,25 @@ table.main th { font-size: 14px; }
 .diagram .box { fill: var(--bg); stroke: var(--line-2); stroke-width: 1; }
 .diagram .edge { fill: none; stroke: var(--muted); stroke-width: 1.25; }
 .diagram marker path { fill: var(--muted); }
+
+/* Views of model internals (interp.js). Colour here encodes values, so these sit inside [data-viz]. */
+.iv-text { font-size: 16px; line-height: 1.9; white-space: pre-wrap; max-width: 760px; }
+.iv-tok { border-radius: 2px; padding: 2px 0; box-decoration-break: clone; -webkit-box-decoration-break: clone; cursor: default; }
+.iv-tok:hover, .iv-tok:focus-visible { outline: 1px solid var(--ink-2); outline-offset: 0; }
+.iv-key { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 10px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.iv-key-steps { display: inline-flex; border: 1px solid var(--line); }
+.iv-key-steps i { width: 16px; height: 12px; }
+.iv-key-labels { display: inline-flex; gap: 10px; }
+.iv-examples > li { display: grid; grid-template-columns: minmax(0, 1fr) 52px; column-gap: 16px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.iv-examples .iv-text { font-size: 15px; }
+.iv-max { text-align: right; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.iv-hist { margin-bottom: 8px; }
+table.iv-lens { font-size: 13px; }
+table.iv-lens td { text-align: center; padding: 5px 8px; border: 1px solid var(--bg); white-space: pre; }
+table.iv-lens th { text-align: center; white-space: pre; }
+table.iv-lens tbody th { text-align: right; padding-right: 10px; }
+.iv-graph .iv-edge, .iv-graph .iv-node { transition: opacity .12s; }
+.iv-graph .iv-dim { opacity: 0.15; }
 
 /* Printing: no sticky header, bookkeeping open, links in ink. base.js opens the disclosure before printing. */
 @media print {
