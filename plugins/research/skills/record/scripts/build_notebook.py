@@ -37,7 +37,9 @@ import html
 import json
 import os
 import re
+import shutil
 import subprocess
+import tempfile
 import sys
 import urllib.request
 from pathlib import Path
@@ -60,6 +62,7 @@ VIEWS = {
     "logitLens": [("tokens", list), ("layers", list), ("top", list)],
     "graph": [("columns", list), ("edges", list)],
     "table": [],
+    "custom": [],
 }
 # Keys every item of a list option needs, where a missing one would stop the chart drawing.
 ITEM_KEYS = {
@@ -324,11 +327,47 @@ def skipped(path: Path):
 
 # ---------- figures ----------
 
+def check_custom(fig, fpath, c: Check):
+    """A view the kit doesn't have: figs/<name>.js beside the JSON, the body of function (el, data)."""
+    js = fpath.with_suffix(".js")
+    if not js.is_file():
+        c.p.error(fpath, f"is a custom view, so it needs its drawing code in {js.name}: the body of function (el, data)")
+        return False
+    src = js.read_text(encoding="utf-8")
+    if re.search(r"</script|<!--", src, re.I):
+        c.p.error(js, "contains </script or <!--, which would end the page's script early; build the string in pieces")
+        return False
+    if "data" not in fig:
+        c.p.error(fpath, "is a custom view, so it needs data: the values its code draws")
+        return False
+    vals = fig.get("values")
+    if vals is not None and not (isinstance(vals, dict) and isinstance(vals.get("head"), list) and isinstance(vals.get("rows"), list)
+                                 and all(isinstance(r, list) for r in vals["rows"])):
+        c.p.error(fpath, "values should be a table for the bookkeeping disclosure: {\"head\": [...], \"rows\": [[...]]}")
+        return False
+    node = shutil.which("node")
+    if node:
+        with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as t:
+            t.write("(function (el, data) {\n" + src + "\n});\n")
+        r = subprocess.run([node, "--check", t.name], capture_output=True, text=True)
+        os.unlink(t.name)
+        if r.returncode:
+            msg = (r.stderr.strip().splitlines() or ["syntax error"])
+            c.p.error(js, "isn't valid JavaScript: " + next((l for l in msg if "Error" in l), msg[-1]))
+            return False
+    else:
+        c.p.warn(js, "wasn't syntax-checked, because node isn't installed; a syntax error shows in its figure's place")
+    fig["script"] = src
+    return True
+
+
 def check_figure(fig, fpath, c: Check):
     view = fig.get("view")
     if view not in VIEWS:
         c.p.error(fpath, f"unknown figure view {view!r}; use one of {', '.join(sorted(VIEWS))}")
         return False
+    if view == "custom":
+        return check_custom(fig, fpath, c)
     ok = True
     if view == "table":
         head, rows = fig.get("head"), fig.get("rows")
@@ -467,6 +506,11 @@ def load(root: Path, p: Problems):
         for i, s in enumerate(c.mappings(e, "since", ""), start=1):
             c.date(s, "date", f"since item {i} ", required=True)
             c.text(s, ["line"], f"since item {i} ")
+        for i, s in enumerate(c.mappings(e, "amended", ""), start=1):
+            c.date(s, "date", f"amended item {i} ", required=True)
+            c.text(s, ["line"], f"amended item {i} ")
+            if not s.get("line"):
+                p.error(readme, f"amended item {i} doesn't say what changed (line: ...)")
 
         for fpath in sorted((d / "figs").glob("*.json")) if (d / "figs").is_dir() else []:
             key = f"{e['id']}/{fpath.stem}"
@@ -591,10 +635,11 @@ def load(root: Path, p: Problems):
             q["state"] = q.get("state") or "open"
             if q["state"] not in ("open", "running", "parked"):
                 p.error(f, f"{what}state {q['state']!r} should be open, running or parked")
-            cost = q.get("cost_gpu_min")
-            if cost is not None and (isinstance(cost, bool) or not isinstance(cost, (int, float)) or cost < 0):
-                p.error(f, f"{what}cost_gpu_min {cost!r} should be a number of GPU-minutes")
-                q["cost_gpu_min"] = None
+            for k, unit in (("cost_gpu_min", "GPU"), ("cost_cpu_min", "CPU")):
+                cost = q.get(k)
+                if cost is not None and (isinstance(cost, bool) or not isinstance(cost, (int, float)) or cost < 0):
+                    p.error(f, f"{what}{k} {cost!r} should be a number of {unit}-minutes")
+                    q[k] = None
             if q.get("lead") not in (None, True, False):
                 p.error(f, f"{what}lead should be true or false")
             for k in ("experiment", "from"):
@@ -638,6 +683,7 @@ def load(root: Path, p: Problems):
             pr["text"] = md.inline(pr.get("text"), path)
             pr["how"] = md.inline(pr.get("how"), path)
         e["since"] = [{"date": s.get("date"), "line": md.inline(s.get("line"), path)} for s in e["since"]]
+        e["amended"] = [{"date": s.get("date"), "line": md.inline(s.get("line"), path)} for s in e["amended"]]
 
     # Every in-page link must lead somewhere.
     targets = {"threads", "next", "experiments"} | {f"t-{t}" for t in tids} | set(ids) | set(fids) | set(qids)
@@ -803,6 +849,10 @@ def build(root: Path, kit, src):
     for e in exps:
         e["search"] = search_text(e, threads)
     clean = lambda x: {k: v for k, v in x.items() if not k.startswith("_")}
+    # Each custom view's code gets its own script tag, so a mistake in one figure can't stop the rest of the page.
+    custom = "".join(
+        f"<script>\n(window.NB_VIEWS = window.NB_VIEWS || {{}})[{json.dumps(k)}] = function (el, data) {{\n{f.pop('script')}\n}};\n</script>\n"
+        for k, f in sorted(figs.items()) if f.get("view") == "custom")
     data = {
         "title": nb.get("title") or "Research notebook",
         "repo": nb.get("repo") or "xycoord/ai-research",
@@ -820,6 +870,7 @@ def build(root: Path, kit, src):
     parts = {"TITLE": html.escape(data["title"]), "BASECSS": kit["base.css"], "CSS": CSS, "DATA": blob,
              "BASEJS": kit["base.js"], "CHARTSJS": kit["charts.js"], "INTERPJS": kit["interp.js"], "JS": JS}
     # One pass over the template, so a placeholder's name inside the data or the kit is never replaced.
+    parts["CUSTOM"] = custom
     page = re.sub(r"%(" + "|".join(parts) + r")%", lambda m: parts[m.group(1)], PAGE)
     return page, p, data
 
@@ -852,7 +903,7 @@ PAGE = """<title>%TITLE%</title>
 <script>
 %INTERPJS%
 </script>
-<script>
+%CUSTOM%<script>
 %JS%
 </script>
 """
@@ -923,7 +974,7 @@ const kv = rows => { const r = rows.filter(x => x && x[1]); return r.length ? `<
 const strengthWord = f => cap(f.strength);
 // A finding's dated status: when it was written or raised, marked when that's newer than the last visit.
 const fstatus = f => { const w = f.raised ? "Raised" : isNew(f.date) ? "New" : "Since"; return isNew(f.date) ? `<span class="nb-new">${w} ${day(f.date)}</span>` : `${w} ${day(f.date)}`; };
-const gpu = q => q.cost_gpu_min ? `<span class="muted nw">, ${esc(q.cost_gpu_min)}&nbsp;GPU-min</span>` : "";
+const gpu = q => q.cost_gpu_min ? `<span class="muted nw">, ${esc(q.cost_gpu_min)}&nbsp;GPU-min</span>` : q.cost_cpu_min != null ? `<span class="muted nw">, ${esc(q.cost_cpu_min)}&nbsp;min on CPU</span>` : "";
 // A step to take: the action and its cost as one sentence, then what its result would settle.
 const step = q => { const a = String(q.action || q.question || "").replace(/\.$/, ""); return `${a}${gpu(q)}.${q.settles ? " " + q.settles : ""}`; };
 // What a Next item's row says: running, parked, planned as an experiment, or the step that would answer it.
@@ -968,6 +1019,11 @@ function drawFigs(root) {
     const F = NB.figs[el.dataset.fig]; if (!F) return;
     try {
       if (F.view === "table") { el.innerHTML = tableHtml(F); return; }
+      if (F.view === "custom") {
+        const draw = (window.NB_VIEWS || {})[el.dataset.fig];
+        if (!draw) throw new Error("its script didn't load, so check figs/" + el.dataset.fig.split("/")[1] + ".js");
+        draw(el, F.data); return;
+      }
       const o = { ...F.options }, fmt = fmtOf(o); if (fmt) o.fmt = fmt;
       if (F.view === "heatmap" && o.mask === "causal") o.mask = (i, j) => j > i;
       else if (F.view === "heatmap") delete o.mask;
@@ -988,6 +1044,7 @@ function valuesTable0(key) {
   if (F.view === "dotChart") return title + t(["", o.metric || "Value", "Range"], [...(o.rows || []), ...(o.refs || [])].map(d => [esc(d.label), f(d.v), d.lo != null ? `${f(d.lo)}–${f(d.hi)}` : ""]));
   if (F.view === "lineChart") return title + t([o.xLabel || "x", ...o.series.map(s => s.name)], o.x.map((x, i) => [esc(x), ...o.series.map(s => s.ys[i] == null ? "" : f(s.ys[i]))]));
   if (F.view === "barChart") return title + t(["", ...o.parts.map(p => p.name)], o.cats.map((c, i) => [esc(c), ...o.parts.map(p => f(p.values[i]))]));
+  if (F.view === "custom" && F.values) return title + t(F.values.head.map(String), F.values.rows.map(r => r.map(x => typeof x === "number" ? f(x) : esc(x ?? ""))));
   return "";
 }
 
@@ -1096,8 +1153,10 @@ function viewExperiment(e) {
     if (buf || first) flush();
     return out;
   };
-  if (explore) ["Why we looked", "The data", "Patterns", "Looked at and found nothing", "Method"].forEach(l => h += body(l));
-  else { h += body("Why we ran it", pred); ["What was compared", "Result", "Method", "Checks", "Examples", "Caveats"].forEach(l => h += body(l)); }
+  const amended = (e.amended || []).map(a => `<p><b>Plan amended ${day(a.date)}, before the run:</b> ${a.line}</p>`).join("");
+  const extras = { "Why we ran it": pred, "Method": amended };
+  if (explore) ["Why we looked", "The data", "Patterns", "Looked at and found nothing", "Method"].forEach(l => h += body(l, extras[l]));
+  else ["Why we ran it", "What was compared", "Result", "Method", "Checks", "Examples", "Caveats"].forEach(l => h += body(l, extras[l]));
   e.sections.filter(s => !done.has(s.label)).forEach(s => h += body(s.label));
   // Generated: the findings this run supports, or for exploration the leads it handed to the thread's Next.
   const cites = e.findings.map(x => { const f = FND[x.id]; return f ? `<li><a class="item" href="#${esc(f.id)}"><span class="t">${f.claim}</span><p class="a">${[x.role && cap(esc(x.role)), f.status === "current" ? `${strengthWord(f)}, since ${day(f.date)}` : `${cap(f.status)} ${day(f.date)}`].filter(Boolean).join(". ")}.</p></a></li>` : ""; }).join("");

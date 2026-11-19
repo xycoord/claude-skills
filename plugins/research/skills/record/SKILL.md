@@ -59,8 +59,13 @@ rejects them.
 - **Prose** follows the person's Clear writing style
   (`~/.claude/output-styles/clear.md`).
 - **The look** comes from `style:functional-design`, through the build
-  script. Figures are the arguments of one call into its charts.js or
-  interp.js, so read those files' comments when making one.
+  script. Show each result in the form that makes it clearest, whether or
+  not the kit has it. Where a kit view fits, a figure is the arguments of one
+  call into its charts.js or interp.js, so read those files' comments. Where
+  none does, such as a new way of looking at a model's internals or a plot
+  the paper you're reproducing used, write a custom view (`format.md` says
+  how), following the design skill's principles for charts and for views of
+  model internals. A custom view that proves useful can join the kit later.
 
 Before marking the PR ready, build the page from your branch to check the files:
 `uv run <this skill>/scripts/build_notebook.py <repo> -o <scratchpad>/notebook.html`.
@@ -75,7 +80,8 @@ Publish from `main` only, whenever a change to the notebook's files reaches
 it, so the page always matches `main`. After a merge, the session that owns
 the PR publishes: it's subscribed to the PR, so the merge wakes it. After an
 experiment's plan or status is pushed straight to `main` (the `experiment`
-skill), the session that pushed it publishes straight after.
+skill), the session that pushed it publishes straight after. Several pushes
+within a few minutes of each other can share one publish after the last.
 
 1. Bring a checkout of `main` up to date: in the `experiment` skill's
    detached copy, `git fetch` and `git checkout --detach origin/main`; in a
