@@ -14,9 +14,15 @@ file format, the write-up and the notebook.
 
 ## 1. Check it hasn't been done
 
-Fetch `origin` first, since another session may have planned something since
-your checkout. Then search `origin/main`'s experiments and threads for the
-question, expanding the terms through `glossary.yaml`'s synonyms, because a
+Plans, status changes and publishing all happen in a separate copy of
+`main`, so they never mix with the experiment branch's work. Make it once,
+at `<scratchpad>/main`, with `git worktree add --detach <scratchpad>/main
+origin/main` (if git says the path is registered but missing, run `git
+worktree prune` first). Bring it up to date before each use, with `git fetch`
+and `git checkout --detach origin/main`, since another session may have
+planned something since.
+
+Then search that copy's experiments and threads for the question, expanding the terms through `glossary.yaml`'s synonyms, because a
 question can be answered under another name. Look at planned and running
 experiments and open PRs too. Check the results dataset for activations or
 results you could reuse instead of paying to make them again. For questions
@@ -79,13 +85,7 @@ launch and relaunch, and any pod used while developing it.
 
 ## 4. Write the plan
 
-Write the plan in a separate copy of `main`, so it never mixes with the
-experiment branch's work: `git worktree add --detach <scratchpad>/main
-origin/main`. Use the same copy for every status change and for publishing,
-and bring it up to date first each time (`git fetch` and `git checkout
---detach origin/main`).
-
-Write `experiments/<id>/README.md` with `status: planned`, in the `record`
+Write the plan in the copy of `main` (section 1): `experiments/<id>/README.md` with `status: planned`, in the `record`
 skill's format, before any code runs on the experiment's data. A plan written
 afterwards can't show what was expected.
 

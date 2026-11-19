@@ -926,6 +926,15 @@ const fstatus = f => { const w = f.raised ? "Raised" : isNew(f.date) ? "New" : "
 const gpu = q => q.cost_gpu_min ? `<span class="muted nw">, ${esc(q.cost_gpu_min)}&nbsp;GPU-min</span>` : "";
 // A step to take: the action and its cost as one sentence, then what its result would settle.
 const step = q => { const a = String(q.action || q.question || "").replace(/\.$/, ""); return `${a}${gpu(q)}.${q.settles ? " " + q.settles : ""}`; };
+// What a Next item's row says: running, parked, planned as an experiment, or the step that would answer it.
+// name(e) renders the experiment's name, as a link or as plain text inside a row that is already a link.
+const nextState = (q, name) => {
+  const e = EXP[q.experiment], settles = q.settles ? " " + q.settles : "";
+  if (q.state === "running") return `${e ? `Running as ${name(e)} since ${day(ran(e))}.` : "Running."}${settles}`;
+  if (q.state === "parked") return `Parked: ${q.parked || "no reason given"}.`;
+  if (e && e.status === "planned") return `Planned as ${name(e)} on ${day(e.date)}.${settles}`;
+  return step(q);
+};
 const expLink = (id, text) => EXP[id] ? `<a href="#${esc(id)}">${text || esc(shortOf(EXP[id]))}</a>` : `<span class="id">${esc(id)}</span>`;
 const threadActivity = t => [...t.findings.map(f => f.date), ...t.history.map(h => h.date), ...NB.experiments.filter(e => e.thread === t.id).map(e => e.date)].map(String).sort().pop() || "";
 const threadsByActivity = () => [...NB.threads].sort((a, b) => threadActivity(b).localeCompare(threadActivity(a)));
@@ -1045,11 +1054,7 @@ function viewThread(t) {
 function nextList(t) {
   if (!t.next.length) return `<p class="muted">Nothing queued as of ${builtDay}.</p>`;
   return `<ul class="rows">${t.next.map(q => {
-    let a;
-    if (q.state === "running") { const e = EXP[q.experiment]; a = `${e ? `Running as ${expLink(e.id)} since ${day(ran(e))}.` : "Running."}${q.settles ? " " + q.settles : ""}`; }
-    else if (q.state === "parked") a = `Parked: ${q.parked || "no reason given"}.`;
-    else if (EXP[q.experiment] && EXP[q.experiment].status === "planned") { const e = EXP[q.experiment]; a = `Planned as ${expLink(e.id)} on ${day(e.date)}.${q.settles ? " " + q.settles : ""}`; }
-    else a = step(q);
+    let a = nextState(q, e => expLink(e.id));
     if (q.lead) a += ` <span class="muted">A lead from ${q.from ? expLink(q.from) : "looking at data"}, not yet tested.</span>`;
     return `<li id="${esc(q.id)}"${q.state === "parked" ? ` class="dim"` : ""}><span class="t">${q.question}</span><p class="a">${a}</p></li>`;
   }).join("")}</ul>`;
@@ -1099,7 +1104,7 @@ function viewExperiment(e) {
   if (cites) h += sec(e.findings.length > 1 ? "Findings" : "Finding", `<ul class="rows">${cites}</ul>`);
   if (explore) {
     const leads = Object.values(QS).filter(q => q.from === e.id);
-    h += sec("Leads", leads.length ? `<ul class="rows">${leads.map(q => `<li><a class="item" href="#${esc(q.id)}"><span class="t">${q.question}</span><p class="a">${q.state === "running" && EXP[q.experiment] ? `Running as ${esc(shortOf(EXP[q.experiment]))} since ${day(ran(EXP[q.experiment]))}.` : q.state === "parked" ? `Parked: ${q.parked || ""}.` : step(q)}</p></a></li>`).join("")}</ul>` : `<p class="muted">No leads taken forward from this look.</p>`);
+    h += sec("Leads", leads.length ? `<ul class="rows">${leads.map(q => `<li><a class="item" href="#${esc(q.id)}"><span class="t">${q.question}</span><p class="a">${nextState(q, e => esc(shortOf(e)))}</p></a></li>`).join("")}</ul>` : `<p class="muted">No leads taken forward from this look.</p>`);
   }
   // Figures in the order the page shows them, then any the write-up doesn't place.
   const placed = e.sections.flatMap(s => s.parts.flatMap(p => p.bleed ? [p.bleed] : [...(p.html || "").matchAll(/data-fig="([^"]+)"/g)].map(m => m[1])));
@@ -1123,9 +1128,9 @@ function viewNext() {
   const tline = id => THR[id] ? `<p class="nb-tl">${esc(THR[id].title)}</p>` : "";
   const qrow = q => {
     const e = EXP[q.experiment];
-    const planned = q.state === "open" && e && e.status === "planned";
-    const a = q.state === "running" ? `${e ? `Running as ${esc(shortOf(e))} since ${day(ran(e))}.` : "Running."}${q.settles ? " " + q.settles : ""}` : q.state === "parked" ? `Parked: ${q.parked || ""}.` : planned ? `Planned as ${esc(shortOf(e))} on ${day(e.date)}.${q.settles ? " " + q.settles : ""}` : step(q);
-    return `<li${q.state === "parked" ? ` class="dim"` : ""}><a class="item" href="#${esc((q.state === "running" || planned) && e ? e.id : q.id)}"><span class="t">${q.question}</span><p class="a">${a}</p>${tline(q.thread)}</a></li>`;
+    const a = nextState(q, e => esc(shortOf(e)));
+    const toExp = e && (q.state === "running" || (q.state === "open" && e.status === "planned"));
+    return `<li${q.state === "parked" ? ` class="dim"` : ""}><a class="item" href="#${esc(toExp ? e.id : q.id)}"><span class="t">${q.question}</span><p class="a">${a}</p>${tline(q.thread)}</a></li>`;
   };
   const erow = e => `<li><a class="item" href="#${esc(e.id)}"><span class="t">${e.question}</span><p class="a">${e.status === "running" ? `Running since ${day(ran(e))}.` : `Planned ${day(e.date)}.`}</p>${tline(e.thread)}</a></li>`;
   const run = [...items.running.map(qrow), ...loose.filter(e => e.status === "running").map(erow)];

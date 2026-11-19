@@ -77,7 +77,9 @@ the PR publishes: it's subscribed to the PR, so the merge wakes it. After an
 experiment's plan or status is pushed straight to `main` (the `experiment`
 skill), the session that pushed it publishes straight after.
 
-1. Pull `main` in the research repo.
+1. Bring a checkout of `main` up to date: in the `experiment` skill's
+   detached copy, `git fetch` and `git checkout --detach origin/main`; in a
+   checkout on the `main` branch, `git pull`.
 2. Build with `--publish`: `uv run <this skill>/scripts/build_notebook.py <repo> -o <scratchpad>/notebook.html --publish`.
    It refuses unless the checkout is clean and matches `origin/main`. A build
    without `--publish` is marked in its footer as a preview of its branch, so
@@ -87,9 +89,9 @@ skill), the session that pushed it publishes straight after.
    hasn't read is refused.
 4. Publish the built file to that address (`url` set to it).
 
-If the publish is refused because another session published first, pull
-`main`, rebuild and publish again. The rebuilt page holds both sessions'
-work, because both are in `main`. Never merge two versions of the HTML by
+If the publish is refused because another session published first, update
+the checkout as in step 1, rebuild and publish again. The rebuilt page holds
+both sessions' work, because both are in `main`. Never merge two versions of the HTML by
 hand.
 
 The notebook's artifact is created once, when the research repo is set up, and
