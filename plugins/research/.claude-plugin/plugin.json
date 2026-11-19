@@ -1,5 +1,5 @@
 {
   "name": "research",
-  "description": "Running ML research with Claude: compute on Runpod that cleans up after itself, with jobs that report back on the experiment's PR (compute)",
+  "description": "Running ML research with Claude: compute on Runpod that cleans up after itself, with jobs that report back on the experiment's PR (compute), and the research notebook: writing up experiments and threads, and building and publishing the notebook page (record)",
   "author": { "name": "xycoord" }
 }
