@@ -935,7 +935,9 @@ def build_drafts(root: Path, kit, prs):
     if p.errors:
         return None, p, None
     try:
-        git(root, "fetch", "--quiet", "origin", "+refs/heads/main:refs/remotes/origin/main")
+        # A shallow clone may not reach where a branch left main, so fetch the whole history once.
+        deep = ["--unshallow"] if git(root, "rev-parse", "--is-shallow-repository") == "true" else []
+        git(root, "fetch", "--quiet", *deep, "origin", "+refs/heads/main:refs/remotes/origin/main")
     except subprocess.CalledProcessError as err:
         sys.exit(f"error: couldn't fetch origin/main to compare branches with: {err.stderr.strip()}")
     drafts, custom, other = [], "", 0
@@ -943,7 +945,7 @@ def build_drafts(root: Path, kit, prs):
     try:
         for x in sorted(prs, key=lambda x: -x["pr"]):
             n, branch, ref = x["pr"], x["branch"], f"refs/remotes/origin/{x['branch']}"
-            d = {**x, "commit": None, "changed": {"experiments": [], "threads": []}, "errors": []}
+            d = {**x, "commit": None, "changed": {"experiments": [], "threads": [], "glossary": False, "settings": False}, "errors": []}
             try:
                 git(root, "fetch", "--quiet", "origin", f"+refs/heads/{branch}:{ref}")
             except subprocess.CalledProcessError:
@@ -951,13 +953,23 @@ def build_drafts(root: Path, kit, prs):
                 drafts.append(d)
                 continue
             # The pull request's own changes: what its branch changed since it left main.
-            changed = git(root, "diff", "--name-only", f"origin/main...{ref}", "--", *NB_PATHS).splitlines()
+            try:
+                changed = git(root, "diff", "--name-only", f"origin/main...{ref}", "--", *NB_PATHS).splitlines()
+            except subprocess.CalledProcessError as err:
+                d["errors"] = [f"Its branch couldn't be compared with main: {err.stderr.strip()}"]
+                drafts.append(d)
+                continue
             if not changed:
                 other += 1
                 continue
+            # Named as the loader reads them: it skips names starting with . or _, and threads/README.md.
+            read = lambda name: not name.startswith((".", "_"))
             d["changed"] = {
-                "experiments": sorted({c.split("/")[1] for c in changed if c.startswith("experiments/") and c.count("/") >= 2}),
-                "threads": sorted({c[len("threads/"):-3] for c in changed if c.startswith("threads/") and c.endswith(".md") and c.count("/") == 1}),
+                "experiments": sorted({c.split("/")[1] for c in changed if c.startswith("experiments/") and c.count("/") >= 2 and read(c.split("/")[1])}),
+                "threads": sorted({c[len("threads/"):-3] for c in changed if c.startswith("threads/") and c.endswith(".md") and c.count("/") == 1
+                                   and read(c[len("threads/"):]) and c != "threads/README.md"}),
+                "glossary": "glossary.yaml" in changed,
+                "settings": "notebook.yaml" in changed,
             }
             wt = tmp / f"pr-{n}"
             git(root, "worktree", "add", "--quiet", "--detach", str(wt), ref)
@@ -1366,7 +1378,7 @@ function results() {
 function viewExperiments() {
   return `<div class="nb-page"><div class="mg"><div class="ml"></div><div class="mc nb-search"><label>Have I tested this?<input type="search" id="nb-q" value="${esc(QUERY)}" placeholder="Search experiments and queued questions" autocomplete="off"></label></div></div><div id="nb-results">${results()}</div></div>`;
 }
-document.addEventListener("input", ev => { if (ev.target.id === "nb-q") { QUERY = ev.target.value; const r = document.getElementById("nb-results"); r.innerHTML = results(); } });
+document.addEventListener("input", ev => { if (ev.target.id === "nb-q") { QUERY = ev.target.value; const r = document.getElementById("nb-results"); r.innerHTML = results(); keepInDraft(r); } });
 
 // ---------- the Drafts page: a list of open pull requests, and each one's notebook ----------
 const and = xs => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
@@ -1377,7 +1389,8 @@ function changes(d) {
   const stop = s => /[.?!]$/.test(s) ? s : s + ".";
   const ex = d.changed.experiments.map(id => EXP[id] ? esc(shortOf(EXP[id])) : `removes <span class="id">${esc(id)}</span>`);
   const th = d.changed.threads.map(id => THR[id] ? esc(THR[id].title) : `removed <span class="id">${esc(id)}</span>`);
-  return [ex.length && `Changes ${and(ex)}.`, th.length && stop(`${th.length > 1 ? "Threads" : "Thread"}: ${and(th)}`)].filter(Boolean).join(" ");
+  const files = [d.changed.glossary && "the glossary", d.changed.settings && "the notebook's settings"].filter(Boolean);
+  return [ex.length && `Changes ${and(ex)}.`, th.length && stop(`${th.length > 1 ? "Threads" : "Thread"}: ${and(th)}`), files.length && `${ex.length ? "Also changes" : "Changes"} ${and(files)}.`].filter(Boolean).join(" ");
 }
 function viewDrafts() {
   const when = stamp(DATA.built);
@@ -1397,9 +1410,15 @@ function viewDraft(d) {
   const ths = d.changed.threads.map(id => THR[id] ? `<li><a class="item" href="#t-${esc(id)}"><span class="t">${esc(THR[id].title)}</span></a></li>` : `<li class="dim"><span class="t">Removes the thread <span class="id">${esc(id)}</span></span></li>`).join("");
   if (exps) h += sec(d.changed.experiments.length > 1 ? "Experiments" : "Experiment", `<ul class="rows nb-list">${exps}</ul>`);
   if (ths) h += sec(d.changed.threads.length > 1 ? "Threads" : "Thread", `<ul class="rows nb-list">${ths}</ul>`);
+  const files = [d.changed.glossary && `the glossary, <span class="id">glossary.yaml</span>`, d.changed.settings && `the notebook's settings, <span class="id">notebook.yaml</span>`].filter(Boolean);
+  if (files.length) h += sec("Also", `<p>Changes ${and(files)}.</p>`);
   h += sec("", `<p><a href="#threads">The whole notebook as it would be after this merges</a></p>`);
   return `<div class="nb-page">${h}</div>`;
 }
+
+// Inside a draft, every link within the page stays inside that draft.
+const inDraft = h => CUR && !/^#pr-\d+(\/|$)/.test(h) && h !== "#drafts" ? `#pr-${CUR.pr}/${h.slice(1)}` : h;
+const keepInDraft = root => { if (CUR) root.querySelectorAll('a[href^="#"]').forEach(a => a.setAttribute("href", inDraft(a.getAttribute("href")))); };
 
 // ---------- routing: one hash per view, and a way back on every page ----------
 // On the Drafts page, a draft's views are addressed as #pr-<n>/<the notebook's own address>.
@@ -1427,9 +1446,7 @@ const KEY = "logan-details-open";
 function render() {
   const r = resolve(location.hash), view = document.getElementById("view");
   view.innerHTML = r.html();
-  // Inside a draft, every link within the page stays inside that draft.
-  const inDraft = h => CUR && !/^#pr-\d+(\/|$)/.test(h) && h !== "#drafts" ? `#pr-${CUR.pr}/${h.slice(1)}` : h;
-  if (CUR) view.querySelectorAll('a[href^="#"]').forEach(a => a.setAttribute("href", inDraft(a.getAttribute("href"))));
+  keepInDraft(view);
   const nav = document.querySelector(".tabs");
   nav.hidden = !!DRAFTS && !CUR;
   nav.querySelectorAll("a").forEach(a => {
