@@ -31,8 +31,9 @@ In one short message:
   references), within about 8 rounds. An objective climb needs its number
   agreed.
 - **What it will cost**: a council per hill per round at least, plus any
-  look across hills and comparisons. Start Codex's sign-in (the council's
-  runner) while they're there, as `/council` says: it needs them.
+  look across hills and comparisons. Start the Codex and Gemini sign-ins
+  (the council's runners) while they're there, as `/council` says: they
+  need them.
 
 ## The loop
 

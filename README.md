@@ -11,7 +11,7 @@ session on that account loads its plugins from `main`.
 |---|---|
 | `research` | `research:experiment`: run one experiment from question to result: check it hasn't been done, work out where it runs and its worst-case cost, put the plan and prediction on `main` before anything runs, ask before spending $5 or more, prove the code on a tiny run, take a first look at the results, write it up with `record`, and propose what comes next. `research:compute`: research compute on Runpod, with the prepaid balance as the only hard limit. The few rules that protect money and data; dev pods with a movable deadline; jobs (`scripts/job.sh`) that run a pinned commit, upload results to Hugging Face, can report on a PR, and delete their own pod however they end; Runpod facts that are hard to find out. `research:record`: writing up research in the notebook and publishing it. The file format for experiments and threads (`references/format.md`), the writing rules for testing a hypothesis and looking for one (`references/writing-rules.md`), and `scripts/build_notebook.py`, which builds the notebook page from the research repo for its pinned artifact. |
 | `style` | `style:functional-design`: Logan's default look for pages people work with, such as reports, dashboards, tools and notebooks, when a project has no design system of its own. Design that feels good and doesn't get in the way, rather than bold: one typeset column, a margin for labels, a small palette so emphasis means something, and a kit (`base.css`, `base.js`, an example page) to start from. |
-| `dev` | `/dev:council`: independent opinions on the same thing from several model families (Opus, Fable and GPT via the Codex CLI), then weighing them. `/dev:hill-climb`: improve something round by round against a fixed measure, judged by a council or a command, until a target. `/dev:pr-review`: get a branch to ready — review it in rounds with the built-in `/code-review`, fix the clear findings, brief the driver on the calls that need a person, and open the PR with a problem-first description. `/dev:verify`: try a web UI change in a real browser and hand over screenshots. `dev:steward` (not a command): how Claude looks after a PR it opened — answers, no check-ins, staying quiet. |
+| `dev` | `/dev:council`: independent opinions on the same thing from several model families (Opus, Fable, GPT via the Codex CLI, and Gemini via the Antigravity CLI), then weighing them. `/dev:hill-climb`: improve something round by round against a fixed measure, judged by a council or a command, until a target. `/dev:pr-review`: get a branch to ready — review it in rounds with the built-in `/code-review`, fix the clear findings, brief the driver on the calls that need a person, and open the PR with a problem-first description. `/dev:verify`: try a web UI change in a real browser and hand over screenshots. `dev:steward` (not a command): how Claude looks after a PR it opened — answers, no check-ins, staying quiet. |
 
 `pr-review`, `verify` and `steward` are general versions of the skills in
 The-Grove-Notts/The-Grove-Database. Each steps aside when a repo has its own
@@ -25,8 +25,10 @@ reviews). Standing review rules go in the repo's `.claude/pr-review-rules.md`.
 Claude offers it in a line.
 
 The council's GPT judge runs through `plugins/dev/skills/council/scripts/codex_agent.py`,
-which needs the Codex CLI signed in to a ChatGPT subscription; its docstring
-has the setup.
+which needs the Codex CLI signed in to a ChatGPT subscription, and its Gemini
+judge through `plugins/dev/skills/council/scripts/gemini_agent.py`, which needs
+the Antigravity CLI (`agy`) signed in to a Google AI plan. Their docstrings
+have the setup.
 
 ## Writing style
 
