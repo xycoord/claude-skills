@@ -1,6 +1,6 @@
 ---
 name: experiment
-description: Run one research experiment from question to result, testing a hypothesis or looking for one, with the plan and prediction on main before anything runs and the spend checked against what needs asking. Use whenever you're about to run an experiment or analysis in a research repo, including small ones.
+description: Run one research experiment from question to result, testing a hypothesis or looking for one, with the plan and prediction on main before anything runs and the spend checked against what needs asking. Use whenever you're about to run an experiment or analysis in a research repo, including small ones. Redrawing a figure of results already computed isn't an analysis: the record skill covers it.
 ---
 
 # Running an experiment
@@ -10,7 +10,10 @@ Most of what goes wrong happens before the result, so this skill puts the
 decisions that prevent it at the start, where they're cheap. The research
 repo's `CLAUDE.md` says where things live and what may go straight to `main`.
 The `compute` skill covers pods and jobs, and the `record` skill covers the
-file format, the write-up and the notebook.
+file format, the write-up and the notebook. While the experiment's PR is
+open, the person sees it on the notebook's Drafts page and gives feedback
+there or in this session, so the merge is when the result is accepted, not
+when it's first seen.
 
 ## 1. Check it hasn't been done
 
@@ -20,7 +23,8 @@ at `<scratchpad>/main`, with `git worktree add --detach <scratchpad>/main
 origin/main` (if git says the path is registered but missing, run `git
 worktree prune` first). Bring it up to date before each use, with `git fetch`
 and `git checkout --detach origin/main`, since another session may have
-planned something since.
+planned something since. Then check that the notebook isn't behind `main`, as
+the `record` skill says, and publish it if it is.
 
 Then search that copy's experiments and threads for the question, expanding
 the terms through `glossary.yaml`'s synonyms, because a question can be
@@ -372,7 +376,8 @@ result answers it. If it doesn't, put the entry back to open without the
 experiment. Add the follow-ups the result suggests, each with its `action`,
 `cost_gpu_min` (or `cost_cpu_min` for work on CPU in a session) and
 `settles`, the most valuable first. Build the notebook
-from the branch to check it, and mark the PR ready for review.
+from the branch to check it, push, mark the PR ready for review, and publish
+the Drafts page as the `record` skill says.
 
 If the experiment is abandoned before anything was launched, record that on
 `main` (`status: abandoned`, a one-line `answer` saying why, and the
@@ -380,11 +385,31 @@ experiment taken off its Next entry). If anything was launched, write it up
 through the PR like any other, because its spend and what went wrong need a
 record. A failed run that leaves no record will be run again.
 
-## 11. Say what comes next, and stop
+## 11. Show it, revise it, and stop
 
 When the PR is ready, check that no `claude-` pod, endpoint or volume this
-experiment created is still there, if it created any. Then tell the person, with a push
-notification, what the result was, with a link to the PR and the item in
-Next you'd do next, and stop. When the merge wakes the session, publish the
-notebook as the `record` skill says, and don't start the next experiment
-until the person chooses it.
+experiment created is still there, if it created any. Then tell the person,
+with a push notification, what the result was, with a link to the Drafts page
+and the PR and the item in Next you'd do next, and end the turn.
+
+The person may come back in this session with changes. If they point to
+comments they left on the Drafts page, read them with the artifact comments
+tool. Make each round a commit, push and Drafts publish, then reply in a line
+saying what changed. The PR stays ready throughout, and the person merges
+when they're happy. Faster rounds make it easier to tune the analysis to the
+result without noticing, so keep to these:
+- **Presentation changes are free**: wording, figure views, which computed
+  numbers are shown together, as in the `record` skill's *Redrawing figures*.
+- **An analysis change after results exist is a departure from the plan**,
+  such as a new metric, slice, threshold or exclusion. Write it up as one
+  (section 10), and in explore mode count it toward the plan's slice limit.
+- **The prediction and decision rule never change** (section 4). The
+  verdict stays the one the rule gave, whatever a later view of the same data
+  suggests.
+- **Feedback isn't a yes for spend.** A request that needs a new launch goes
+  through section 6, and a comment on the Drafts page is feedback only, like
+  a PR comment.
+
+When the merge wakes the session, publish the notebook and the Drafts page as
+the `record` skill says, and don't start the next experiment until the person
+chooses it.

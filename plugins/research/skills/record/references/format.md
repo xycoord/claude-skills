@@ -10,7 +10,7 @@ experiments/<experiment-id>/
     README.md                     the fixed record of one run
     figs/<name>.json              figures the README shows (optional)
 glossary.yaml                     the project's terms, names and synonyms
-notebook.yaml                     the notebook's settings (title, artifact URL)
+notebook.yaml                     the notebook's settings (title, the notebook's and Drafts page's URLs)
 ```
 
 IDs:
@@ -189,6 +189,7 @@ Search in the notebook expands a query through these synonyms, so "mean aggregat
 ```yaml
 title: ai-research notebook
 artifact: https://claude.ai/artifact/<id>        # the pinned notebook; every session publishes here
+drafts: https://claude.ai/artifact/<id>          # the pinned Drafts page: open pull requests before they merge
 last_visit: null                                  # optional: date used to mark changes as new
 repo: xycoord/ai-research                         # optional: the GitHub repo that links point to (this is the default)
 results: xycoord/research-results                 # optional: the Hugging Face dataset that results paths are in (this is the default)
