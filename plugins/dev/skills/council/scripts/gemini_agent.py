@@ -21,8 +21,8 @@ call fails rather than asking. agy's own web search can't be turned off, so
 the judge may search the web, as the Claude judges can.
 
 Writes DIR/reply.md (its answer), DIR/events.jsonl (agy's event stream) and
-DIR/meta.json: the model label each generation in the conversation recorded
-(from agy's conversation store, not the model's own claim; it can't see a
+DIR/meta.json: the model and effort each generation in the conversation was
+served with (from agy's conversation store, not the model's own claim; it can't see a
 reroute on the server's side) and whether that matched the request
 (`model_verified`), the script's own result, token usage, seconds, any
 actions agy denied, and the plan's usage windows (`five_hour` and `weekly` for
@@ -35,13 +35,14 @@ Setup, once per cloud container (agy isn't kept between containers): install
 agy (curl -fsSL https://antigravity.google/cli/install.sh | bash, which puts
 it in ~/.local/bin), then sign in by running agy in a terminal (tmux in a
 cloud session): choose Google OAuth, the person opens the link, signs in and
-pastes the code back. It runs with API keys taken out of its environment,
-the Gemini API provider switched off and AI credits switched off, so it can
-only use the plan's quota. Written against agy 1.5.13.
+pastes the code back. It refuses a Google Cloud project or API-key sign-in,
+and runs with API keys taken out of its environment, the Gemini API provider
+switched off and AI credits switched off, so it can only use the plan's
+quota. Written against agy 1.5.13.
 
 Exit codes: 0 done · 1 failed (including a timeout, an empty answer, or a run
-ended by an action it couldn't ask about) · 2 bad arguments · 3 agy missing
-or not signed in · 4 a usage or rate limit stopped it · 5 the answer came
+ended by an action it couldn't ask about) · 2 bad arguments · 3 agy missing,
+not signed in, or not signed in to the Google AI plan · 4 a usage or rate limit stopped it · 5 the answer came
 from a different model or effort than asked, or the conversation store
 couldn't confirm which: treat the judge as not run. agy's answer is written to
 reply.rejected.md, renamed reply.md only on success, so a failed run's answer
@@ -140,8 +141,25 @@ def usage_windows(report: str, group: str) -> dict:
     return windows
 
 
-def ran_labels(conversation_id: str) -> list[set[str]] | None:
-    """The model label each generation of the conversation recorded."""
+def string_fields(data: bytes, tag: bytes) -> list[str]:
+    """The short printable strings stored under one protobuf field tag."""
+    found = []
+    for match in re.finditer(re.escape(tag) + rb"([\x01-\x7f])", data):
+        value = data[match.end():match.end() + match.group(1)[0]]
+        if len(value) == match.group(1)[0] and all(32 <= b < 127 for b in value):
+            found.append(value.decode())
+    return found
+
+
+def ran_models(conversation_id: str) -> list[dict] | None:
+    """The model each generation of the conversation was served by, and its label.
+
+    Read from two fields of each generation's record, not from the text in it:
+    the record also holds the prompt and every file the agent read, so a model
+    name mentioned in the work being judged must not count. Field 19 is the
+    model the backend ran (`gemini-4-neon`), field 21 its label with the
+    effort (`Gemini 4 Neon (High)`). Found from agy 1.5.13's records.
+    """
     store = AGY_HOME / "conversations" / f"{conversation_id}.db"
     if not store.is_file():
         return None
@@ -150,8 +168,30 @@ def ran_labels(conversation_id: str) -> list[set[str]] | None:
             rows = db.execute("select data from gen_metadata order by idx").fetchall()
     except sqlite3.Error:
         return None
-    return [set(m.decode() for m in re.findall(rb"Gemini [0-9][\x20-\x7e]{0,40}?\)", data or b""))
+    model_name = re.compile(r"(gemini|claude|gpt)[\w.-]*")
+    label_name = re.compile(r"(Gemini|Claude|GPT)[ -].*\)")
+    return [{"models": sorted({v for v in string_fields(data or b"", b"\x9a\x01")
+                               if model_name.fullmatch(v)}),
+             "labels": sorted({v for v in string_fields(data or b"", b"\xaa\x01")
+                               if label_name.fullmatch(v)})}
             for (data,) in rows]
+
+
+def plan_sign_in() -> str | None:
+    """Why agy might not bill the AI plan, or None when it's signed in to it."""
+    if not (AGY_HOME / "antigravity-oauth-token").is_file():
+        return "agy has no Google sign-in token"
+    try:
+        saved = json.loads((AGY_HOME / "settings.json").read_text(encoding="utf-8") or "{}")
+    except FileNotFoundError:
+        return None
+    except (OSError, json.JSONDecodeError) as error:
+        return f"agy's settings.json can't be read ({error})"
+    if saved.get("gcp"):
+        return "agy is signed in to a Google Cloud project, which bills that project"
+    if saved.get("modelProvider"):
+        return f"agy is set to the {saved['modelProvider']} provider, which bills per token"
+    return None
 
 
 def main() -> int:
@@ -198,9 +238,14 @@ def main() -> int:
     model_id = f"{args.model}-{args.effort}"
     with tempfile.TemporaryDirectory(prefix="gemini-agent-check-") as check_dir:
         code, listing = run_quick(agy, ["models"], Path(check_dir))
-    if code != 0 or "sign in" in listing.lower():
+    if "sign in" in listing.lower():
         return fail(3, "agy isn't signed in: run agy in a terminal and choose Google OAuth "
                        "(the person signs in and pastes the code)")
+    if code != 0:
+        return fail(1, f"agy models failed: {listing.strip()[-800:]}")
+    off_plan = plan_sign_in()
+    if off_plan:
+        return fail(3, f"{off_plan}: sign agy in with Google OAuth instead")
     labels = model_labels(listing)
     if model_id not in labels:
         return fail(2, f"{model_id} isn't offered on this account; agy models lists: "
@@ -220,6 +265,10 @@ def main() -> int:
             "--model", model_id, "--settings", json.dumps(SETTINGS),
             "--disable-slash-commands",
         ]
+        # Run elsewhere, the images' folder is outside its workspace, and a
+        # read there would need an approval a headless run can't get.
+        if args.cwd and args.images:
+            command += ["--add-dir", str(stage_dir)]
         turn = json.dumps({"event": "user", "message": {
             "content": args.prompt.read_text(encoding="utf-8")}}) + "\n"
         started = time.monotonic()
@@ -272,12 +321,17 @@ def main() -> int:
             "conversation_id": result.get("conversation_id"),
             "permission_mode": init.get("permission_mode"),
             "denied_actions": result.get("denied_actions") or []}
-    generations = ran_labels(meta["conversation_id"]) if meta["conversation_id"] else None
-    meta["ran_labels"] = [sorted(g) for g in generations] if generations is not None else None
-    # Every generation must name the asked-for model and effort, and only it.
+    generations = ran_models(meta["conversation_id"]) if meta["conversation_id"] else None
+    meta["ran_models"] = generations
+    # Every generation that names a model must name the asked-for one, at the
+    # asked-for effort, and at least one must name it.
+    named = [g for g in (generations or []) if g["models"] or g["labels"]]
     meta["model_verified"] = bool(
-        generations and all(g == {want_label} for g in generations)
-        and init.get("model") == model_id
+        named and init.get("model") == model_id
+        and all(g["models"] in ([], [args.model]) and g["labels"] in ([], [want_label])
+                for g in named)
+        and any(g["labels"] == [want_label] for g in named)
+        and any(g["models"] == [args.model] for g in named)
     )
     with tempfile.TemporaryDirectory(prefix="gemini-agent-check-") as check_dir:
         code, report = run_quick(agy, ["-p", "/usage"], Path(check_dir))
@@ -306,7 +360,7 @@ def main() -> int:
                       f"agy failed (exit {returncode}): {problem[-800:] or 'no answer'}")
     if not meta["model_verified"]:
         return finish(5, f"asked for {want_label}; the conversation store says "
-                         f"{meta['ran_labels'] or 'nothing'}: treat as not run")
+                         f"{meta['ran_models'] or 'nothing'}: treat as not run")
     finish(0)
     print(json.dumps({k: meta.get(k) for k in
                       ("requested_model", "model_verified", "seconds", "usage", "usage_windows")}))
