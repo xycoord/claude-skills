@@ -187,6 +187,8 @@ def plan_sign_in() -> str | None:
         return None
     except (OSError, json.JSONDecodeError) as error:
         return f"agy's settings.json can't be read ({error})"
+    if not isinstance(saved, dict):
+        return "agy's settings.json isn't a JSON object"
     if saved.get("gcp"):
         return "agy is signed in to a Google Cloud project, which bills that project"
     if saved.get("modelProvider"):
@@ -359,8 +361,10 @@ def main() -> int:
         return finish(4 if limit else 1,
                       f"agy failed (exit {returncode}): {problem[-800:] or 'no answer'}")
     if not meta["model_verified"]:
+        hint = "" if named else (" (no generation names any model: agy may have changed "
+                                 "how it records them since 1.5.13, see ran_models)")
         return finish(5, f"asked for {want_label}; the conversation store says "
-                         f"{meta['ran_models'] or 'nothing'}: treat as not run")
+                         f"{meta['ran_models'] or 'nothing'}{hint}: treat as not run")
     finish(0)
     print(json.dumps({k: meta.get(k) for k in
                       ("requested_model", "model_verified", "seconds", "usage", "usage_windows")}))
