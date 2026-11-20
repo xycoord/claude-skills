@@ -7,6 +7,7 @@
 
     uv run <record skill>/scripts/build_notebook.py <repo-dir> -o notebook.html            a preview of any checkout
     uv run <record skill>/scripts/build_notebook.py <repo-dir> -o notebook.html --publish  the page to publish
+    uv run <record skill>/scripts/build_notebook.py <repo-dir> -o drafts.html --drafts prs.json   the Drafts page
 
 Reads threads/, experiments/, glossary.yaml and notebook.yaml (the format is in
 references/format.md beside this script's folder) and writes one self-contained
@@ -15,8 +16,15 @@ notebook's data embedded as JSON, and the script that renders it. The page has
 no doctype, html, head or body tags, because the artifact publisher adds them.
 
 With --publish, it refuses to build unless the repo is a clean checkout of
-origin/main, so the published page always matches main. Without it, the page's
-footer says it's a preview of the branch it was built from.
+origin/main, so the published page always matches main. Without it, a banner
+says the page is a preview of the branch it was built from.
+
+With --drafts, it builds the Drafts page instead: one notebook for each open
+pull request that changes the notebook's files, built from the latest commit of
+its branch on GitHub (not the local checkout), with what the pull request
+changes listed first. prs.json lists the open pull requests as
+[{"number": 13, "title": "...", "branch": "claude/..."}]; the output of
+`gh pr list --state open --json number,title,headRefName` works as it is.
 
 The kit (base.css, base.js, charts.js, interp.js) is found in this order:
   1. the folder named by the FD_KIT environment variable;
@@ -840,39 +848,145 @@ def source(root: Path, publish: bool):
 
 # ---------- the page ----------
 
-def build(root: Path, kit, src):
+def now():
+    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M")
+
+
+def collect(root: Path, src, views=""):
+    """The notebook's data from one checkout, and the script tags of its custom views, keyed views + figure key."""
     p = Problems(root)
     nb, threads, exps, figs, glossary, _gl = load(root, p)
     if p.errors:
-        return None, p, None
+        return None, "", p
     derive(threads, exps)
     for e in exps:
         e["search"] = search_text(e, threads)
     clean = lambda x: {k: v for k, v in x.items() if not k.startswith("_")}
     # Each custom view's code gets its own script tag, so a mistake in one figure can't stop the rest of the page.
     custom = "".join(
-        f"<script>\n(window.NB_VIEWS = window.NB_VIEWS || {{}})[{json.dumps(k)}] = function (el, data) {{\n{f.pop('script')}\n}};\n</script>\n"
+        f"<script>\n(window.NB_VIEWS = window.NB_VIEWS || {{}})[{json.dumps(views + k)}] = function (el, data) {{\n{f.pop('script')}\n}};\n</script>\n"
         for k, f in sorted(figs.items()) if f.get("view") == "custom")
     data = {
         "title": nb.get("title") or "Research notebook",
         "repo": nb.get("repo") or "xycoord/ai-research",
         "results": nb.get("results") or "xycoord/research-results",
+        "artifact": nb.get("artifact"),
         "last_visit": nb.get("last_visit"),
-        "built": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M"),
+        "built": now(),
         "source": src,
         "threads": [{**clean(t), "file": f"threads/{t['id']}.md"} for t in threads],
         "experiments": sorted([clean(e) for e in exps], key=lambda e: (str(e.get("date")), e["id"]), reverse=True),
         "figs": figs,
         "glossary": glossary,
     }
+    return data, custom, p
+
+
+def page_html(kit, data, custom):
     # Every < in the data is written as <, so nothing in a file can end the script tag or open a comment in it.
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     parts = {"TITLE": html.escape(data["title"]), "BASECSS": kit["base.css"], "CSS": CSS, "DATA": blob,
              "BASEJS": kit["base.js"], "CHARTSJS": kit["charts.js"], "INTERPJS": kit["interp.js"], "JS": JS}
     # One pass over the template, so a placeholder's name inside the data or the kit is never replaced.
     parts["CUSTOM"] = custom
-    page = re.sub(r"%(" + "|".join(parts) + r")%", lambda m: parts[m.group(1)], PAGE)
-    return page, p, data
+    return re.sub(r"%(" + "|".join(parts) + r")%", lambda m: parts[m.group(1)], PAGE)
+
+
+def build(root: Path, kit, src):
+    data, custom, p = collect(root, src)
+    if data is None:
+        return None, p, None
+    return page_html(kit, data, custom), p, data
+
+
+# ---------- the Drafts page: every open pull request, as the notebook would be once it merges ----------
+
+NB_PATHS = ["threads", "experiments", "glossary.yaml", "notebook.yaml"]
+
+
+def read_prs(path):
+    """The open pull requests, from a JSON list of {number, title, branch}. gh's headRefName and the GitHub API's
+    head.ref are accepted for branch, so `gh pr list --state open --json number,title,headRefName` works as it is."""
+    try:
+        prs = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as err:
+        sys.exit(f"error: couldn't read the pull requests from {path}: {err}")
+    if not isinstance(prs, list):
+        sys.exit(f"error: {path} should hold a JSON list of pull requests")
+    out = []
+    for x in prs:
+        head = x.get("head") if isinstance(x, dict) else None
+        branch = isinstance(x, dict) and (x.get("branch") or x.get("headRefName") or (head.get("ref") if isinstance(head, dict) else None))
+        if not branch or not isinstance(x.get("number"), int):
+            sys.exit(f"error: each pull request in {path} needs a number and a branch: {json.dumps(x)[:200]}")
+        out.append({"pr": x["number"], "title": str(x.get("title") or ""), "branch": str(branch)})
+    return out
+
+
+def build_drafts(root: Path, kit, prs):
+    """One page holding each open pull request's notebook, built from its branch's latest pushed commit."""
+    try:
+        if Path(git(root, "rev-parse", "--show-toplevel")).resolve() != root:
+            raise ValueError
+    except Exception:
+        sys.exit(f"error: {root} isn't the top of a git checkout of the research repo")
+    p = Problems(root)
+    nb = read_yaml(root / "notebook.yaml", p)
+    if p.errors:
+        return None, p, None
+    try:
+        git(root, "fetch", "--quiet", "origin", "+refs/heads/main:refs/remotes/origin/main")
+    except subprocess.CalledProcessError as err:
+        sys.exit(f"error: couldn't fetch origin/main to compare branches with: {err.stderr.strip()}")
+    drafts, custom, other = [], "", 0
+    tmp = Path(tempfile.mkdtemp(prefix="nb-drafts-"))
+    try:
+        for x in sorted(prs, key=lambda x: -x["pr"]):
+            n, branch, ref = x["pr"], x["branch"], f"refs/remotes/origin/{x['branch']}"
+            d = {**x, "commit": None, "changed": {"experiments": [], "threads": []}, "errors": []}
+            try:
+                git(root, "fetch", "--quiet", "origin", f"+refs/heads/{branch}:{ref}")
+            except subprocess.CalledProcessError:
+                d["errors"] = [f"Its branch {branch} isn't on GitHub, so it couldn't be built."]
+                drafts.append(d)
+                continue
+            # The pull request's own changes: what its branch changed since it left main.
+            changed = git(root, "diff", "--name-only", f"origin/main...{ref}", "--", *NB_PATHS).splitlines()
+            if not changed:
+                other += 1
+                continue
+            d["changed"] = {
+                "experiments": sorted({c.split("/")[1] for c in changed if c.startswith("experiments/") and c.count("/") >= 2}),
+                "threads": sorted({c[len("threads/"):-3] for c in changed if c.startswith("threads/") and c.endswith(".md") and c.count("/") == 1}),
+            }
+            wt = tmp / f"pr-{n}"
+            git(root, "worktree", "add", "--quiet", "--detach", str(wt), ref)
+            try:
+                d["commit"] = git(wt, "rev-parse", "--short", "HEAD")
+                data, cust, q = collect(wt.resolve(), {"publish": False, "commit": d["commit"], "branch": branch, "dirty": False}, views=f"{n}:")
+            finally:
+                git(root, "worktree", "remove", "--force", str(wt))
+            if data is None:
+                d["errors"] = q.errors[:20] + ([f"…and {len(q.errors) - 20} more."] if len(q.errors) > 20 else [])
+            else:
+                d["nb"] = {k: data[k] for k in ("threads", "experiments", "figs", "glossary")}
+                custom += cust
+            drafts.append(d)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+        subprocess.run(["git", "-C", str(root), "worktree", "prune"], capture_output=True)
+    title = nb.get("title") or "Research notebook"
+    data = {
+        "title": f"{title}: drafts", "notebook": title,
+        "repo": nb.get("repo") or "xycoord/ai-research",
+        "results": nb.get("results") or "xycoord/research-results",
+        "artifact": nb.get("artifact"),
+        "last_visit": None, "built": now(),
+        "source": {"drafts": True},
+        "drafts": drafts, "other": other,
+        "threads": [], "experiments": [], "figs": {}, "glossary": [],
+    }
+    return page_html(kit, data, custom), p, data
 
 
 PAGE = """<title>%TITLE%</title>
@@ -888,8 +1002,8 @@ PAGE = """<title>%TITLE%</title>
 <header class="top"><div class="wrap">
   <a class="brand" href="#threads">%TITLE%</a>
   <span class="status" id="nb-live"></span>
-  <nav class="tabs" aria-label="Views"><a href="#threads">Threads</a><a href="#next">Next</a><a href="#experiments">Experiments</a></nav>
-</div></header>
+  <nav class="tabs" aria-label="Views"><a href="#threads" data-tab="threads">Threads</a><a href="#next" data-tab="next">Next</a><a href="#experiments" data-tab="experiments">Experiments</a></nav>
+</div><div class="wrap nb-banner" id="nb-banner" hidden></div></header>
 <main class="wrap" id="view"></main>
 <footer class="wrap" id="nb-foot"></footer>
 <!-- Built by the record skill's build_notebook.py from the research repo. Never edit this page by hand: change the repo and rebuild. -->
@@ -942,25 +1056,47 @@ details.nb-earlier[open] > summary { margin-bottom: 18px; }
 .rows .nb-tl { color: var(--muted); font-size: 14px; margin-top: 2px; }
 .md blockquote p + p, .md blockquote + blockquote { margin-top: 8px; }
 .dbody .id, .dbody code { white-space: normal; overflow-wrap: anywhere; }
+.top .nb-banner { display: block; border-top: 1px solid var(--line); padding-block: 8px; font-size: 14px; color: var(--ink-2); }
+.nb-banner .id { overflow-wrap: anywhere; }
+body.nb-has-banner .mg, body.nb-has-banner section[id], body.nb-has-banner li[id] { scroll-margin-top: 112px; }
+.nb-err { font-family: var(--f-mono); font-size: 13px; overflow-wrap: anywhere; }
 """
 
 JS = r"""
 // The notebook's rendering script. The data above is generated from the research repo by build_notebook.py;
 // everything on the page is drawn from it, so the page is never edited by hand.
-const NB = JSON.parse(document.getElementById("nb-data").textContent);
+const DATA = JSON.parse(document.getElementById("nb-data").textContent);
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const day = iso => { if (!iso) return ""; const [, m, d] = String(iso).split("-"); return `${+d} ${MON[+m - 1]}`; };
+const stamp = iso => `${day(iso.slice(0, 10))} ${iso.slice(0, 4)}, ${iso.slice(11, 16)} UTC`;
 const esc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : "";
-const EXP = Object.fromEntries(NB.experiments.map(e => [e.id, e]));
-const THR = Object.fromEntries(NB.threads.map(t => [t.id, t]));
-const FND = {}, QS = {};
-NB.threads.forEach(t => { t.findings.forEach(f => { f.thread = t.id; FND[f.id] = f; }); t.next.forEach(q => { q.thread = t.id; QS[q.id] = q; }); });
+// The Drafts page holds one notebook per open pull request; the notebook and a preview hold one. The views draw
+// from whichever notebook is in use (NB and the indexes below), and CUR is the draft it came from, if any.
+const DRAFTS = DATA.source && DATA.source.drafts ? DATA.drafts : null;
+let NB, EXP, THR, FND, QS, GROUPS, HAY, QHAY, builtDay, CUR = null;
+function use(nb) {
+  NB = nb;
+  EXP = Object.fromEntries(NB.experiments.map(e => [e.id, e]));
+  THR = Object.fromEntries(NB.threads.map(t => [t.id, t]));
+  FND = {}; QS = {};
+  NB.threads.forEach(t => { t.findings.forEach(f => { f.thread = t.id; FND[f.id] = f; }); t.next.forEach(q => { q.thread = t.id; QS[q.id] = q; }); });
+  builtDay = day(NB.built.slice(0, 10));
+  GROUPS = NB.glossary.map(forms => ({ forms, keys: forms.map(f => norm(f).trim()) }));
+  HAY = Object.fromEntries(NB.experiments.map(e => [e.id, norm(e.search)]));
+  QHAY = Object.fromEntries(Object.values(QS).map(q => [q.id, norm(q._text || "")]));
+}
+function pick(d) {
+  if (d === CUR && NB) return;
+  CUR = d;
+  if (d) d._nb ||= { ...DATA, ...(d.nb || { threads: [], experiments: [], figs: {}, glossary: [] }), source: { publish: false, commit: d.commit, branch: d.branch } };
+  use(d ? d._nb : { ...DATA });
+}
 const shortOf = e => e.short || e.id;
 const isNew = iso => NB.last_visit && iso && String(iso) > String(NB.last_visit);
-const builtDay = day(NB.built.slice(0, 10));
-// Links out, escaped for an attribute; a results path is encoded one segment at a time.
+// Links out, escaped for an attribute; a results path is encoded one segment at a time. A draft's files link to its branch.
 const GH = path => esc(`https://github.com/${NB.repo}/${path}`);
+const REF = () => CUR ? CUR.branch : "main";
 const HF = path => esc(`https://huggingface.co/datasets/${NB.results}/tree/main/${String(path).replace(/^\/+/, "").split("/").map(encodeURIComponent).join("/")}`);
 const ran = e => e.started || e.date;
 
@@ -1020,7 +1156,7 @@ function drawFigs(root) {
     try {
       if (F.view === "table") { el.innerHTML = tableHtml(F); return; }
       if (F.view === "custom") {
-        const draw = (window.NB_VIEWS || {})[el.dataset.fig];
+        const draw = (window.NB_VIEWS || {})[(CUR ? CUR.pr + ":" : "") + el.dataset.fig];
         if (!draw) throw new Error("its script didn't load, so check figs/" + el.dataset.fig.split("/")[1] + ".js");
         draw(el, F.data); return;
       }
@@ -1100,7 +1236,7 @@ function viewThread(t) {
   });
   const vals = cur.filter(f => f.figure).map(f => valuesTable(f.figure)).join("");
   h += weeds([
-    block("Record", kv([["Source", `<a class="id" href="${GH(`blob/main/${t.file}`)}">${esc(t.file)}</a>`],
+    block("Record", kv([["Source", `<a class="id" href="${GH(`blob/${REF()}/${t.file}`)}">${esc(t.file)}</a>`],
       ...t.findings.map(f => [f.status === "current" ? "Finding" : cap(f.status), `<span class="id">${esc(f.id)}</span>`]),
       ...t.next.map(q => ["Next", `<span class="id">${esc(q.id)}</span>`])])),
     vals && block("Values", vals),
@@ -1173,7 +1309,7 @@ function viewExperiment(e) {
     block("Code", kv([["Commit", e.commit && `<a class="id" href="${GH(`commit/${e.commit}`)}">${esc(e.commit)}</a>`], ["Pull request", e.pr && `<a href="${GH(`pull/${e.pr}`)}">${esc(NB.repo)}#${esc(e.pr)}</a>`], ["Rerun", e.rerun && `<code>${esc(e.rerun)}</code>`]])),
     block("Data", kv([["Results", (e.results || []).map(r => `<a class="id" href="${HF(r)}">${esc(r)}</a>`).join("<br>") || "No results folder"], ["Figures", figKeys.length ? figKeys.map(k => `<span class="id">figs/${esc(k.split("/")[1])}.json</span>`).join("<br>") : ""]])),
     vals && block("Values", vals),
-    block("Record", kv([["ID", `<span class="id">${esc(e.id)}</span>`], ["Mode", explore ? "Looking for a hypothesis" : "Testing a hypothesis"], ["Status", esc(cap(e.status))], ["Planned", day(e.date)], ["Started", e.started ? day(e.started) : ""], ["Cost", e.cost_usd != null ? `$${Number(e.cost_usd).toFixed(2)}` : ""], ["Source", `<a class="id" href="${GH(`blob/main/experiments/${e.id}/README.md`)}">experiments/${esc(e.id)}/README.md</a>`]])),
+    block("Record", kv([["ID", `<span class="id">${esc(e.id)}</span>`], ["Mode", explore ? "Looking for a hypothesis" : "Testing a hypothesis"], ["Status", esc(cap(e.status))], ["Planned", day(e.date)], ["Started", e.started ? day(e.started) : ""], ["Cost", e.cost_usd != null ? `$${Number(e.cost_usd).toFixed(2)}` : ""], ["Source", `<a class="id" href="${GH(`blob/${REF()}/experiments/${e.id}/README.md`)}">experiments/${esc(e.id)}/README.md</a>`]])),
   ].join(""));
   return `<div class="nb-page">${h}</div>`;
 }
@@ -1206,9 +1342,6 @@ function viewNext() {
 // ---------- Experiments, with search ----------
 // Search expands a query through the glossary's synonyms, so "mean aggregation" also finds mean-pool.
 const norm = s => " " + String(s).toLowerCase().replace(/[^a-z0-9%.]+/g, " ").replace(/\s+/g, " ").trim() + " ";
-const GROUPS = NB.glossary.map(forms => ({ forms, keys: forms.map(f => norm(f).trim()) }));
-const HAY = Object.fromEntries(NB.experiments.map(e => [e.id, norm(e.search)]));
-const QHAY = Object.fromEntries(Object.values(QS).map(q => [q.id, norm(q._text || "")]));
 function parseQuery(q) {
   let s = norm(q); const reqs = [];
   const phrases = GROUPS.flatMap(g => g.keys.map(k => [k, g])).filter(([k]) => k).sort((a, b) => b[0].length - a[0].length);
@@ -1222,7 +1355,6 @@ function results() {
   const reqs = parseQuery(QUERY), any = reqs.length > 0;
   const exps = NB.experiments.filter(e => matches(HAY[e.id], reqs));
   const qs = any ? Object.values(QS).filter(q => q.state !== "running" && matches(QHAY[q.id], reqs)) : [];
-  const and = xs => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
   const also = reqs.filter(r => r.g).map(r => `“${esc(r.said)}” also matches ${and(r.g.forms.filter(f => norm(f).trim() !== r.said).map(esc))}.`);
   let h = also.length ? `<p class="nb-also">${also.join(" ")}</p>` : "";
   if (!NB.experiments.length && !any) return `<p class="muted" style="margin-top:12px">No experiments yet. Each one is a folder in <code>experiments/</code> of the research repo, and appears here once it's on main and the notebook is rebuilt.</p>`;
@@ -1236,9 +1368,51 @@ function viewExperiments() {
 }
 document.addEventListener("input", ev => { if (ev.target.id === "nb-q") { QUERY = ev.target.value; const r = document.getElementById("nb-results"); r.innerHTML = results(); } });
 
+// ---------- the Drafts page: a list of open pull requests, and each one's notebook ----------
+const and = xs => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
+const prLink = d => `<a href="${GH(`pull/${d.pr}`)}">PR #${esc(d.pr)}</a>`;
+// What a pull request changes, named as the notebook names it: experiments by their short name, threads by title.
+function changes(d) {
+  pick(d);
+  const stop = s => /[.?!]$/.test(s) ? s : s + ".";
+  const ex = d.changed.experiments.map(id => EXP[id] ? esc(shortOf(EXP[id])) : `removes <span class="id">${esc(id)}</span>`);
+  const th = d.changed.threads.map(id => THR[id] ? esc(THR[id].title) : `removed <span class="id">${esc(id)}</span>`);
+  return [ex.length && `Changes ${and(ex)}.`, th.length && stop(`${th.length > 1 ? "Threads" : "Thread"}: ${and(th)}`)].filter(Boolean).join(" ");
+}
+function viewDrafts() {
+  const when = stamp(DATA.built);
+  let h = head("", "Drafts", `Each open pull request that changes the notebook, shown as the notebook would look once it merges, from the latest commit on its branch. Nothing here is in the notebook until Logan merges it.`);
+  if (!DRAFTS.length) h += sec("", `<p>No open pull request changes the notebook, as of ${when}.</p>`);
+  else h += sec("", `<ul class="rows nb-list">${DRAFTS.map(d => `<li><a class="item" href="#pr-${esc(d.pr)}"><span class="t">${esc(d.title || "Untitled")}</span><p class="a">PR #${esc(d.pr)}. ${d.errors.length ? `<span class="crit">Can't be shown:</span> ${d.commit ? "its notebook files have errors." : "its branch isn't on GitHub."}` : changes(d)}</p></a></li>`).join("")}</ul>`);
+  if (DATA.other) h += sec("", `<p class="muted">${DATA.other} other open pull ${DATA.other > 1 ? "requests change" : "request changes"} nothing in the notebook.</p>`);
+  pick(null);
+  return `<div class="nb-page">${h}</div>`;
+}
+function viewDraft(d) {
+  let h = head(up("#drafts", "Drafts"), esc(d.title || "Untitled"), `${prLink(d)}, on branch <span class="id">${esc(d.branch)}</span>${d.commit ? ` at <a class="id" href="${GH(`commit/${d.commit}`)}">${esc(d.commit)}</a>` : ""}. Not in the notebook until it merges.`);
+  if (d.errors.length) return `<div class="nb-page">${h}${sec(`<span class="crit">Errors</span>`, `<p>${d.commit ? "The notebook's files on this branch have errors, so it can't be shown. The session working on it needs to fix them." : "It can't be shown."}</p><ul class="log">${d.errors.map(e => `<li class="nb-err">${esc(e)}</li>`).join("")}</ul>`)}</div>`;
+  const exps = d.changed.experiments.map(id => { const e = EXP[id];
+    return e ? `<li><a class="item" href="#${esc(id)}"><span class="t">${e.question}</span><p class="a">${e.answer || (e.status === "running" ? `Running since ${day(ran(e))}.` : e.status === "planned" ? `Planned ${day(e.date)}.` : "")}</p></a></li>`
+      : `<li class="dim"><span class="t">Removes <span class="id">${esc(id)}</span></span></li>`; }).join("");
+  const ths = d.changed.threads.map(id => THR[id] ? `<li><a class="item" href="#t-${esc(id)}"><span class="t">${esc(THR[id].title)}</span></a></li>` : `<li class="dim"><span class="t">Removes the thread <span class="id">${esc(id)}</span></span></li>`).join("");
+  if (exps) h += sec(d.changed.experiments.length > 1 ? "Experiments" : "Experiment", `<ul class="rows nb-list">${exps}</ul>`);
+  if (ths) h += sec(d.changed.threads.length > 1 ? "Threads" : "Thread", `<ul class="rows nb-list">${ths}</ul>`);
+  h += sec("", `<p><a href="#threads">The whole notebook as it would be after this merges</a></p>`);
+  return `<div class="nb-page">${h}</div>`;
+}
+
 // ---------- routing: one hash per view, and a way back on every page ----------
+// On the Drafts page, a draft's views are addressed as #pr-<n>/<the notebook's own address>.
 function resolve(hash) {
   let id; try { id = decodeURIComponent(hash.replace(/^#/, "")); } catch (err) { id = ""; }  // a malformed address opens the home view
+  if (DRAFTS) {
+    const m = /^pr-(\d+)(?:\/(.*))?$/.exec(id), d = m && DRAFTS.find(x => String(x.pr) === m[1]);
+    if (!m) { pick(null); return { tab: null, html: viewDrafts }; }
+    if (!d) { pick(null); return { tab: null, html: () => `<div class="nb-page">${head(up("#drafts", "Drafts"), "Not a draft any more", `PR #${esc(m[1])} isn't open, or changes nothing in the notebook, as of ${stamp(DATA.built)}. If it merged, it's in the notebook.`)}</div>` }; }
+    pick(d);
+    if (!m[2] || d.errors.length) return { tab: null, html: () => viewDraft(d) };
+    id = m[2];
+  }
   id = id || "threads";
   if (id === "threads") return { tab: "threads", html: viewHome };
   if (id === "next") return { tab: "next", html: viewNext };
@@ -1253,7 +1427,16 @@ const KEY = "logan-details-open";
 function render() {
   const r = resolve(location.hash), view = document.getElementById("view");
   view.innerHTML = r.html();
-  document.querySelectorAll(".tabs a").forEach(a => a.getAttribute("href") === "#" + r.tab ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+  // Inside a draft, every link within the page stays inside that draft.
+  const inDraft = h => CUR && !/^#pr-\d+(\/|$)/.test(h) && h !== "#drafts" ? `#pr-${CUR.pr}/${h.slice(1)}` : h;
+  if (CUR) view.querySelectorAll('a[href^="#"]').forEach(a => a.setAttribute("href", inDraft(a.getAttribute("href"))));
+  const nav = document.querySelector(".tabs");
+  nav.hidden = !!DRAFTS && !CUR;
+  nav.querySelectorAll("a").forEach(a => {
+    a.setAttribute("href", inDraft("#" + a.dataset.tab));
+    a.dataset.tab === r.tab ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current");
+  });
+  banner();
   // The bookkeeping disclosure stays open once opened, as in base.js, which only sees the page as first loaded.
   let open = false; try { open = localStorage.getItem(KEY) === "1"; } catch (e) {}
   view.querySelectorAll("details[data-remember]").forEach(d => { d.open = open; d.addEventListener("toggle", () => { try { localStorage.setItem(KEY, d.open ? "1" : "0"); } catch (e) {} }); });
@@ -1281,17 +1464,35 @@ document.addEventListener("click", ev => {
   if (a && depth > 0) { ev.preventDefault(); history.back(); }
 });
 
-// ---------- header, footer, first draw ----------
+// ---------- header, banner, footer, first draw ----------
+// Anything that isn't the published notebook says so at the top of every view, and where it came from.
+function banner() {
+  const el = document.getElementById("nb-banner"), S = NB.source || {}, name = esc(NB.repo.split("/").pop());
+  const from = S.commit ? `<span class="id">${name}@${esc(S.commit)}</span>${S.branch ? ` on branch <span class="id">${esc(S.branch)}</span>` : ", a detached checkout"}${S.dirty ? ", with uncommitted changes" : ""}` : "a folder that isn't a git checkout";
+  const text = CUR ? `<b class="warn">Unmerged draft</b> from ${prLink(CUR)}, built ${stamp(DATA.built)}${CUR.commit ? ` from commit <span class="id">${esc(CUR.commit)}</span>` : ""}. It isn't in the notebook until it merges. <a href="#drafts">All drafts</a>`
+    : !DRAFTS && !S.publish ? `<b class="warn">Preview</b>, not the published notebook: built ${stamp(NB.built)} from ${from}.` : "";
+  el.innerHTML = text; el.hidden = !text;
+  document.body.classList.toggle("nb-has-banner", !!text);
+}
 (() => {
-  const run = runningExps(), live = document.getElementById("nb-live");
-  if (run.length === 1) live.innerHTML = `<a href="#${esc(run[0].id)}">1 experiment running, as of ${builtDay}</a>`;
-  else if (run.length) live.innerHTML = `<a href="#next">${run.length} experiments running, as of ${builtDay}</a>`;
-  else live.remove();
-  const when = `${day(NB.built.slice(0, 10))} ${NB.built.slice(0, 4)}, ${NB.built.slice(11, 16)} UTC`, S = NB.source || {}, name = esc(NB.repo.split("/").pop());
-  // A page built for publishing comes from a clean origin/main; anything else says it's a preview of what it was built from.
-  document.getElementById("nb-foot").innerHTML = S.publish
-    ? `Built ${when} from <span class="id">${name}@${esc(S.commit)}</span>, the main branch. This page is generated from the research repo; change the repo, not the page.`
-    : `<b class="warn">Preview</b>, not the published notebook: built ${when} from ${S.commit ? `<span class="id">${name}@${esc(S.commit)}</span>${S.branch ? ` on branch <span class="id">${esc(S.branch)}</span>` : ", a detached checkout"}${S.dirty ? ", with uncommitted changes" : ""}` : "a folder that isn't a git checkout"}.`;
+  if (DRAFTS) {
+    document.title = DATA.title;
+    const brand = document.querySelector(".brand"); brand.textContent = DATA.title; brand.setAttribute("href", "#drafts");
+    document.getElementById("nb-live").remove();
+    const nbLink = DATA.artifact ? ` The notebook itself, built from <code>main</code>, is <a href="${esc(DATA.artifact)}" target="_blank" rel="noopener">its own page</a>.` : "";
+    document.getElementById("nb-foot").innerHTML = `Built ${stamp(DATA.built)} from the open pull requests on GitHub.${nbLink} This page is generated from the research repo; change the repo, not the page.`;
+  } else {
+    use(DATA);
+    const run = runningExps(), live = document.getElementById("nb-live");
+    if (run.length === 1) live.innerHTML = `<a href="#${esc(run[0].id)}">1 experiment running, as of ${builtDay}</a>`;
+    else if (run.length) live.innerHTML = `<a href="#next">${run.length} experiments running, as of ${builtDay}</a>`;
+    else live.remove();
+    const S = NB.source || {}, name = esc(NB.repo.split("/").pop());
+    // A page built for publishing comes from a clean origin/main; anything else says it's a preview, in the banner too.
+    document.getElementById("nb-foot").innerHTML = S.publish
+      ? `Built ${stamp(NB.built)} from <span class="id">${name}@${esc(S.commit)}</span>, the main branch. This page is generated from the research repo; change the repo, not the page.`
+      : `<b class="warn">Preview</b>, not the published notebook. This page is generated from the research repo; change the repo, not the page.`;
+  }
   if (state().d == null) save({ d: 0, y: 0 });
   depth = state().d || 0;
   const r = render(), el = r.target && document.getElementById(r.target);
@@ -1306,13 +1507,19 @@ def main():
     ap.add_argument("-o", "--out", default="notebook.html", help="where to write the page (default notebook.html)")
     ap.add_argument("--publish", action="store_true",
                     help="build the page to publish: refuses unless the repo is a clean checkout of origin/main")
+    ap.add_argument("--drafts", metavar="PRS_JSON",
+                    help="build the Drafts page from the open pull requests listed in this JSON file")
     a = ap.parse_args()
+    if a.publish and a.drafts:
+        sys.exit("error: --publish and --drafts build different pages; use one")
     root = Path(a.repo).expanduser().resolve()
     if not root.is_dir():
         sys.exit(f"error: {root} isn't a folder")
-    src = source(root, a.publish)
     kit, where = find_kit()
-    page, p, data = build(root, kit, src)
+    if a.drafts:
+        page, p, data = build_drafts(root, kit, read_prs(a.drafts))
+    else:
+        page, p, data = build(root, kit, source(root, a.publish))
     for w in p.warnings:
         print(f"warning: {w}", file=sys.stderr)
     for e in p.errors:
@@ -1320,6 +1527,13 @@ def main():
     if p.errors:
         sys.exit(f"{len(p.errors)} error(s); nothing written.")
     Path(a.out).write_text(page, encoding="utf-8")
+    if a.drafts:
+        ds = data["drafts"]
+        bad = [f"#{d['pr']}" for d in ds if d["errors"]]
+        print(f"Wrote {a.out}, the Drafts page: {len(ds)} pull request(s) that change the notebook"
+              f"{f' ({len(bad)} with errors, shown on the page: {", ".join(bad)})' if bad else ''}"
+              f"{f', and {data["other"]} that change nothing in it' if data['other'] else ''}. {len(page) // 1024} KB. Kit from {where}.")
+        return
     what = "to publish" if a.publish else "as a preview"
     print(f"Wrote {a.out} {what}: {len(data['threads'])} threads, {len(data['experiments'])} experiments, "
           f"{len(data['figs'])} figures, {len(page) // 1024} KB. Kit from {where}.")
